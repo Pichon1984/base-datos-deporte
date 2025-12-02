@@ -4,11 +4,12 @@ const jwt = require('jsonwebtoken');
 const Usuario = require('../models/usuario');
 const { generarJWT } = require('../helpers/generar-jwt');
 
-// Login
+// 🔑 LOGIN
 const login = async (req = request, res = response) => {
   const { correo, password } = req.body;
 
   try {
+    // Buscar usuario por correo
     const usuario = await Usuario.findOne({ correo });
 
     if (!usuario) {
@@ -19,26 +20,35 @@ const login = async (req = request, res = response) => {
       return res.status(400).json({ msg: "Correo o password incorrecto | usuario inactivo" });
     }
 
+    // Validar contraseña
     const validPassword = bcrypt.compareSync(password, usuario.password);
     if (!validPassword) {
       return res.status(400).json({ msg: "Correo o password incorrectos" });
     }
 
+    // Generar JWT
     const token = await generarJWT(usuario.id);
 
     res.json({
       msg: "Login ok",
-      usuario,
+      usuario: {
+        _id: usuario._id,
+        nombre: usuario.nombre,
+        email: usuario.correo,
+        rol: usuario.rol,
+        telefono: usuario.telefono,
+        direccion: usuario.direccion
+      },
       token
     });
 
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).json({ msg: 'Hable con el administrador del sistema' });
   }
 };
 
-// Forgot password
+// 🔑 FORGOT PASSWORD
 const forgotPassword = async (req = request, res = response) => {
   const { correo } = req.body;
 
@@ -48,18 +58,23 @@ const forgotPassword = async (req = request, res = response) => {
       return res.status(404).json({ msg: "Usuario no encontrado" });
     }
 
-    const token = jwt.sign({ id: usuario._id }, process.env.SECRETORPRIVATEKEY, { expiresIn: '15m' });
+    // Generar token temporal
+    const token = jwt.sign(
+      { id: usuario._id },
+      process.env.SECRETORPRIVATEKEY,
+      { expiresIn: '15m' }
+    );
 
     // El frontend con EmailJS se encargará de enviar este token por correo
     res.json({ token, msg: "Token generado, envíalo por correo al usuario" });
 
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ msg: "Error en forgot-password" });
   }
 };
 
-// Reset password
+// 🔑 RESET PASSWORD
 const resetPassword = async (req = request, res = response) => {
   const { token, nuevaPassword } = req.body;
 
@@ -71,6 +86,7 @@ const resetPassword = async (req = request, res = response) => {
       return res.status(404).json({ msg: "Usuario no encontrado" });
     }
 
+    // Encriptar nueva contraseña
     const salt = bcrypt.genSaltSync(10);
     usuario.password = bcrypt.hashSync(nuevaPassword, salt);
 
@@ -79,11 +95,10 @@ const resetPassword = async (req = request, res = response) => {
     res.json({ msg: "Contraseña actualizada correctamente" });
 
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(400).json({ msg: "Token inválido o expirado" });
   }
 };
 
 module.exports = { login, forgotPassword, resetPassword };
-
 
