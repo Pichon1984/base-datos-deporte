@@ -1,45 +1,103 @@
 const { Router } = require('express');
-const { categoriasGet, categoriaGet, categoriaPost, categoriaDelete, categoriaPut } = require('../controllers/categorias');
+const Categoria = require('../models/categoria');
 const { validarJWT } = require('../middlewares/validar-jwt');
-const { check } = require('express-validator');
-const { categoriaExiste } = require('../helpers/db-validators');
-const { validarCampos } = require('../middlewares/validarCampos');
-const { esAdminRole } = require('../middlewares/validar-roles');
+
 const router = Router();
 
-router.get('/',[
-    validarJWT,
-],categoriasGet);
+// ✅ Listar todas las categorías
+router.get('/', async (req, res) => {
+  try {
+    const categorias = await Categoria.find({ estado: true });
+    res.json({ categorias });
+  } catch (error) {
+    console.error("❌ Error al obtener categorías:", error.message);
+    res.status(500).json({ msg: "Error interno al obtener categorías" });
+  }
+});
 
-router.get('/:id',[
-    validarJWT,
-    check('id', "el id no es valido").isMongoId(),
-    check('id').custom(categoriaExiste),
-    validarCampos
-], categoriaGet);
+// ✅ Obtener categoría por ID
+router.get('/:id', async (req, res) => {
+  try {
+    const categoria = await Categoria.findById(req.params.id);
+    if (!categoria) {
+      return res.status(404).json({ msg: "Categoría no encontrada" });
+    }
+    res.json(categoria);
+  } catch (error) {
+    console.error("❌ Error al obtener categoría:", error.message);
+    res.status(500).json({ msg: "Error interno al obtener categoría" });
+  }
+});
 
-router.post('/',[
-    validarJWT,
-    esAdminRole,
-    check('nombre','el nobre de la categoria es obligatorio').notEmpty(),
-    validarCampos
-],categoriaPost);
+// ✅ Crear categoría (requiere token válido)
+router.post('/', validarJWT, async (req, res) => {
+  try {
+    const { nombre } = req.body;
+    if (!nombre) {
+      return res.status(400).json({ msg: "El nombre es obligatorio" });
+    }
 
-router.put('/:id',[
-    validarJWT,
-    esAdminRole,
-    check('id', "el id no es valido").isMongoId(),
-    check('id').custom(categoriaExiste),
-    validarCampos
+    const existe = await Categoria.findOne({ nombre: nombre.toLowerCase() });
+    if (existe) {
+      return res.status(400).json({ msg: "La categoría ya existe" });
+    }
 
-], categoriaPut);
+    const categoria = new Categoria({
+      nombre: nombre.toLowerCase(),
+      usuario: req.usuario._id
+    });
 
+    await categoria.save();
 
-router.delete('/:id',[
-    validarJWT,
-    esAdminRole,
-    check('id', "el id no es valido").isMongoId(),
-    check('id').custom(categoriaExiste),
-    validarCampos
-], categoriaDelete);
+    res.status(201).json({
+      msg: "Categoría creada correctamente",
+      categoria
+    });
+  } catch (error) {
+    console.error("❌ Error al crear categoría:", error.message);
+    res.status(500).json({ msg: "Error interno al crear categoría" });
+  }
+});
+
+// ✅ Actualizar categoría
+router.put('/:id', validarJWT, async (req, res) => {
+  try {
+    const { nombre } = req.body;
+    const categoria = await Categoria.findByIdAndUpdate(
+      req.params.id,
+      { nombre: nombre.toLowerCase() },
+      { new: true }
+    );
+
+    if (!categoria) {
+      return res.status(404).json({ msg: "Categoría no encontrada" });
+    }
+
+    res.json({
+      msg: "Categoría actualizada correctamente",
+      categoria
+    });
+  } catch (error) {
+    console.error("❌ Error al actualizar categoría:", error.message);
+    res.status(500).json({ msg: "Error interno al actualizar categoría" });
+  }
+});
+
+// ✅ Eliminar categoría
+router.delete('/:id', validarJWT, async (req, res) => {
+  try {
+    const categoria = await Categoria.findByIdAndDelete(req.params.id);
+    if (!categoria) {
+      return res.status(404).json({ msg: "Categoría no encontrada" });
+    }
+    res.json({ msg: "Categoría eliminada", categoria });
+  } catch (error) {
+    console.error("❌ Error al eliminar categoría:", error.message);
+    res.status(500).json({ msg: "Error interno al eliminar categoría" });
+  }
+});
+
 module.exports = router;
+
+
+

@@ -1,104 +1,61 @@
-const { request, response } = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const Usuario = require('../models/usuario');
-const { generarJWT } = require('../helpers/generar-jwt');
+const bcrypt = require("bcryptjs");
+const Usuario = require("../models/usuario");
+const { generarJWT } = require("../helpers/generar-jwt");
 
 // 🔑 LOGIN
-const login = async (req = request, res = response) => {
+const login = async (req, res) => {
   const { correo, password } = req.body;
 
   try {
-    // Buscar usuario por correo
     const usuario = await Usuario.findOne({ correo });
-
     if (!usuario) {
-      return res.status(400).json({ msg: "Correo o password incorrectos | usuario inexistente" });
+      return res.status(400).json({ msg: "Correo/contraseña incorrectos" });
     }
 
     if (!usuario.estado) {
-      return res.status(400).json({ msg: "Correo o password incorrecto | usuario inactivo" });
+      return res.status(403).json({ msg: "Usuario inhabilitado" });
     }
 
-    // Validar contraseña
-    const validPassword = bcrypt.compareSync(password, usuario.password);
-    if (!validPassword) {
-      return res.status(400).json({ msg: "Correo o password incorrectos" });
+    const valid = bcrypt.compareSync(password, usuario.password);
+    if (!valid) {
+      return res.status(400).json({ msg: "Correo/contraseña incorrectos" });
     }
 
-    // Generar JWT
     const token = await generarJWT(usuario.id);
 
-    res.json({
-      msg: "Login ok",
-      usuario: {
-        _id: usuario._id,
-        nombre: usuario.nombre,
-        email: usuario.correo,
-        rol: usuario.rol,
-        telefono: usuario.telefono,
-        direccion: usuario.direccion
-      },
-      token
-    });
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ msg: 'Hable con el administrador del sistema' });
+    res.json({ token, usuario: usuario.toJSON() });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ msg: "Error en login" });
   }
 };
 
-// 🔑 FORGOT PASSWORD
-const forgotPassword = async (req = request, res = response) => {
-  const { correo } = req.body;
+// 📝 REGISTRO
+const registrar = async (req, res) => {
+  const { nombre, apellido, correo, password } = req.body;
 
   try {
-    const usuario = await Usuario.findOne({ correo });
-    if (!usuario) {
-      return res.status(404).json({ msg: "Usuario no encontrado" });
+    const existe = await Usuario.findOne({ correo });
+    if (existe) {
+      return res.status(400).json({ msg: "El correo ya está registrado" });
     }
 
-    // Generar token temporal
-    const token = jwt.sign(
-      { id: usuario._id },
-      process.env.SECRETORPRIVATEKEY,
-      { expiresIn: '15m' }
-    );
+    const salt = bcrypt.genSaltSync();
+    const hashedPassword = bcrypt.hashSync(password, salt);
 
-    // El frontend con EmailJS se encargará de enviar este token por correo
-    res.json({ token, msg: "Token generado, envíalo por correo al usuario" });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: "Error en forgot-password" });
-  }
-};
-
-// 🔑 RESET PASSWORD
-const resetPassword = async (req = request, res = response) => {
-  const { token, nuevaPassword } = req.body;
-
-  try {
-    const decoded = jwt.verify(token, process.env.SECRETORPRIVATEKEY);
-
-    const usuario = await Usuario.findById(decoded.id);
-    if (!usuario) {
-      return res.status(404).json({ msg: "Usuario no encontrado" });
-    }
-
-    // Encriptar nueva contraseña
-    const salt = bcrypt.genSaltSync(10);
-    usuario.password = bcrypt.hashSync(nuevaPassword, salt);
-
+    const usuario = new Usuario({ nombre, apellido, correo, password: hashedPassword });
     await usuario.save();
 
-    res.json({ msg: "Contraseña actualizada correctamente" });
+    const token = await generarJWT(usuario.id);
 
-  } catch (error) {
-    console.error(error);
-    res.status(400).json({ msg: "Token inválido o expirado" });
+    res.status(201).json({ msg: "Usuario registrado", token, usuario: usuario.toJSON() });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ msg: "Error al registrar" });
   }
 };
 
-module.exports = { login, forgotPassword, resetPassword };
+module.exports = { login, registrar };
+
+
 

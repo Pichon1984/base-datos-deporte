@@ -1,141 +1,124 @@
-const { response, request} = require('express');
 const Producto = require('../models/producto');
-const cloudinary = require('cloudinary').v2;
 const Categoria = require('../models/categoria');
 
+// ✅ Obtener todos los productos o filtrados por categoría
+const productosGet = async (req, res) => {
+  try {
+    const { categoria } = req.query;
+    let query = {};
 
-
-const productosGet = async (req=require, res=response) =>{
-    const {desde=0, limite = 5} = req.query;
-    const query = { estado: true};
-
-    const [total, producto] = await Promise.all([
-        Producto.countDocuments(query),
-        Producto.find(query)
-        .skip(Number(desde))
-        .limit(Number(limite))
-    .populate('usuario', 'correo')
-       .populate('categoria', 'nombre')
-
-
-
-
-    ]);
-    res.json({
-        msg: 'producto obtenido',
-        total,
-        producto
-    });
-}
-
-
- const productoGet = async (req = request, res = response) => {
-    const { id } = req.params;
-
-    const producto = await Producto.findById(id)
-        .populate('usuario', 'nombre')
-        .populate('categoria', 'nombre');
-
-    res.json({
-        msg: "el producto obtenido según lo solicitado",
-        producto
-    });
-};
-
-
-const productoPost = async (req = request, res = response) => {
-    const { precio, categoria, descripcion, img, stock } = req.body;
-    const nombre = req.body.nombre.toUpperCase();
-    const productoDB = await Producto.findOne({ nombre })
-
-    //Subir imagen a Cloudinary
-    const imagen = async (img) => {
-        try {
-            // Upload the image
-            const result = await cloudinary.uploader.upload(img);
-            return result.secure_url;
-        } catch (error) {
-            console.error(error);
-        }
-    };
-    const imgId = await imagen(img);
-
-    //Validar si el producto existe
-    if (productoDB) {
-        return res.status(400).json({
-            msg: `El producto ${productoDB.nombre} ya existe.`,
-        })
+    if (categoria) {
+      const cat = await Categoria.findOne({ nombre: categoria.toLowerCase() });
+      if (!cat) {
+        return res.status(404).json({ error: 'Categoría no encontrada' });
+      }
+      query.categoria = cat._id;
     }
 
-    //Generar la data que voy a guardar en la DB
-    const data = { nombre, categoria, precio, descripcion, img: imgId, stock, usuario: req.usuario._id }
+    const productos = await Producto.find(query)
+      .populate('usuario', 'nombre correo')
+      .populate('categoria', 'nombre');
 
-    const producto = new Producto(data);
+    res.json({ productos });
+  } catch (error) {
+    console.error('Error al obtener productos:', error.message);
+    res.status(500).json({ error: 'Error interno del servidor', detalle: error.message });
+  }
+};
 
-    //Grabar en la DB
+// ✅ Obtener producto por ID
+const productoGet = async (req, res) => {
+  try {
+    const producto = await Producto.findById(req.params.id)
+      .populate('usuario', 'nombre correo')
+      .populate('categoria', 'nombre');
+
+    if (!producto) {
+      return res.status(404).json({ error: 'Producto no encontrado' });
+    }
+    res.json(producto);
+  } catch (error) {
+    console.error('Error al obtener producto:', error.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+
+// ✅ Crear producto
+const productoPost = async (req, res) => {
+  try {
+    const { nombre, precio, descripcion, imagenes, stock, categoria } = req.body;
+
+    if (!nombre || !precio || !categoria) {
+      return res.status(400).json({ error: 'Nombre, precio y categoría son obligatorios' });
+    }
+    if (isNaN(Number(precio)) || Number(precio) <= 0) {
+      return res.status(400).json({ error: 'El precio debe ser un número válido mayor a 0' });
+    }
+
+    const existeCategoria = await Categoria.findById(categoria);
+    if (!existeCategoria) {
+      return res.status(400).json({ error: 'Categoría no válida' });
+    }
+
+    const producto = new Producto({
+      nombre,
+      precio: Number(precio),
+      descripcion,
+      imagenes,
+      stock,
+      categoria,
+      usuario: req.usuario._id
+    });
+
     await producto.save();
 
     res.status(201).json({
-        msg: 'Producto creado con éxito!',
-        producto,
-    })
-}
-
-
-const productoPut = async (req = request, res = response) => {
-    const { id } = req.params;
-    const { precio, categoria, descripcion, destacado, img, stock } = req.body;
-
-    const usuario = req.usuario._id;  
-
-    let data = { precio, descripcion, categoria, destacado, stock, usuario };
-
-    // si viene nombre
-    if (req.body.nombre) {
-        data.nombre = req.body.nombre.toUpperCase();
-    }
-
-    // si viene nueva imagen
-    if (img) {
-        const productoActual = await Producto.findById(id);
-        if (productoActual.img) {
-            const nombreArr = productoActual.img.split('/');
-            const nombre = nombreArr[nombreArr.length - 1];
-            const [public_id] = nombre.split('.');
-            await cloudinary.uploader.destroy(public_id);
-        }
-
-        const result = await cloudinary.uploader.upload(img);
-        data.img = result.secure_url;
-    }
-
-    const producto = await Producto.findByIdAndUpdate(id, data, { new: true });
-
-    res.status(201).json({
-        msg: 'El producto se actualizó',
-        producto
+      msg: 'Producto creado correctamente',
+      producto
     });
+
+  } catch (error) {
+    console.error('Error al crear producto:', error.message);
+    res.status(500).json({ error: 'Error interno del servidor', detalle: error.message });
+  }
 };
 
+// ✅ Actualizar producto
+const productoPut = async (req, res) => {
+  try {
+    const producto = await Producto.findByIdAndUpdate(req.params.id, req.body, { new: true })
+      .populate('usuario', 'nombre correo')
+      .populate('categoria', 'nombre');
 
+    if (!producto) {
+      return res.status(404).json({ error: 'Producto no encontrado' });
+    }
+    res.json(producto);
+  } catch (error) {
+    console.error('Error al actualizar producto:', error.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
 
-const productoDelete = async (req=request, res=response) =>{
-const {id} = req.params;
+// ✅ Eliminar producto
+const productoDelete = async (req, res) => {
+  try {
+    const producto = await Producto.findByIdAndDelete(req.params.id);
+    if (!producto) {
+      return res.status(404).json({ error: 'Producto no encontrado' });
+    }
+    res.json({ msg: 'Producto eliminado', producto });
+  } catch (error) {
+    console.error('Error al eliminar producto:', error.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
 
-const productoInactivo = await Producto.findByIdAndUpdate(id, {estado: false}, {new:true});
+module.exports = {
+  productosGet,
+  productoGet,
+  productoPost,
+  productoPut,
+  productoDelete
+};
 
-res.json({
-    msg:`el producto ${productoInactivo.nombre} se inactivo`,
-    productoInactivo
-})
-}
-
-
-
-module.exports ={
-    productoPost,
-    productoGet,
-    productosGet,
-    productoDelete,
-    productoPut,
-}
