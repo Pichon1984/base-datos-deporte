@@ -6,50 +6,57 @@ class Server {
     constructor() {
         this.app = express();
         this.port = process.env.PORT || 3000;
-        this.usuariosPath = '/api/usuarios';
-        this.authPath = '/api/auth';
-        this.categoriaPath = '/api/categorias';
-        this.productoPath = '/api/productos';
-         this.compraPath = '/api/compra';
 
+        // Definir paths de la API
+        this.usuariosPath   = '/api/usuarios';
+        this.authPath       = '/api/auth';
+        this.categoriaPath  = '/api/categorias';
+        this.productoPath   = '/api/productos';
+        this.compraPath     = '/api/compra';
+        this.carritoPath    = '/api/carrito';
+        this.ordenesPath    = '/api/ordenes'; // 👈 nuevo path para órdenes
 
-
-
-        //conectar con la base de datos
+        // Conectar con la base de datos
         this.connectarDb();
-        //middleware
+
+        // Middlewares
         this.middleware();
-        //funcion rutas
+
+        // Rutas de la aplicación
         this.routes();
-
-
     }
+
     async connectarDb() {
         await dbConnection();
-
     }
+
     middleware() {
-        //cors
+        // CORS
         this.app.use(cors());
-        //leer lo que el usuario envia por el cuerpo de la peticion
-        this.app.use(express.json());
-        //definir la carpeta publica
-        this.app.use(express.static('public'));
 
+        // Leer JSON en el body
+        this.app.use(express.json());
+
+        // Carpeta pública
+        this.app.use(express.static('public'));
     }
+
     routes() {
         this.app.use(this.authPath, require('../routes/auth'));
         this.app.use(this.usuariosPath, require('../routes/usuarios'));
         this.app.use(this.categoriaPath, require('../routes/categorias'));
         this.app.use(this.productoPath, require('../routes/productos'));
-         this.app.use(this.compraPath, require('../routes/compra')); 
+        this.app.use(this.compraPath, require('../routes/compra'));
+        this.app.use(this.carritoPath, require('../routes/carritoRoutes'));
+        this.app.use(this.ordenesPath, require('../routes/ordenes')); // 👈 integración órdenes
     }
+
     listen() {
         this.app.listen(this.port, () => {
             console.log('server online port:', this.port);
-        })
-
+        });
     }
-
 }
+
 module.exports = Server;
+

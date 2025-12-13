@@ -1,43 +1,18 @@
-const { Schema, model } = require('mongoose');
+const { Schema, model } = require("mongoose");
 
 const CompraSchema = new Schema({
-  clienteId: {
-    type: Schema.Types.ObjectId,
-    ref: 'Usuario',
-    required: true
-  },
-  fecha: {
-    type: Date,
-    default: Date.now
-  },
-  total: {
-    type: Number,
-    required: true
-  },
-  items: [
+  cliente: { type: Schema.Types.ObjectId, ref: "Usuario", required: true },
+  productos: [
     {
-      productoId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Producto',
-        required: true
-      },
-      nombre: {
-        type: String,
-        required: true
-      },
-      cantidad: {
-        type: Number,
-        required: true
-      },
-      precioUnitario: {
-        type: Number,
-        required: true
-      }
+      productoId: { type: Schema.Types.ObjectId, ref: "Producto", required: true },
+      cantidad: { type: Number, required: true },
+      precio: { type: Number, required: true }
     }
-  ]
-}, {
-  timestamps: true // agrega createdAt y updatedAt automáticamente
+  ],
+  total: { type: Number, required: true },
+  fecha: { type: Date, default: Date.now }
 });
 
-module.exports = model('Compra', CompraSchema);
+module.exports = model("Compra", CompraSchema);
+
 

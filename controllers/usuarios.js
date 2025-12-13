@@ -1,139 +1,98 @@
-const { request, response } = require('express');
-const bcrypt = require('bcryptjs');
-const Usuario = require('../models/usuario');
+const Usuario = require("../models/usuario");
+const bcrypt = require("bcryptjs");
+const { generarJWT } = require('../helpers/generar-jwt');
 
-// GET usuarios con paginación
-const usuariosGet = async (req = request, res = response) => {
-  try {
-    const { desde = 0, limite = 5 } = req.query;
-    const query = { estado: true };
 
-    const [total, usuarios] = await Promise.all([
-      Usuario.countDocuments(query),
-      Usuario.find(query).skip(Number(desde)).limit(Number(limite))
-    ]);
 
-    res.json({
-      mensaje: 'Usuarios obtenidos',
-      total,
-      usuarios
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: 'Error al obtener usuarios' });
-  }
+// GET con búsqueda y paginación
+const usuariosGet = async (req, res) => {
+  const { q = "", page = 1, limit = 10 } = req.query;
+  const filtro = q ? { nombre: new RegExp(q, "i") } : {};
+
+  const [usuarios, total] = await Promise.all([
+    Usuario.find(filtro).skip((page - 1) * limit).limit(Number(limit)),
+    Usuario.countDocuments(filtro)
+  ]);
+
+  res.json({ total, usuarios });
 };
 
-// GET usuario por ID
-const usuariosGetId = async (req = request, res = response) => {
-  try {
-    const { id } = req.params;
-    const usuario = await Usuario.findById(id);
-
-    if (!usuario) {
-      return res.status(404).json({ msg: 'Usuario no encontrado' });
-    }
-
-    res.json({
-      mensaje: 'Usuario obtenido',
-      usuario
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: 'Error al obtener usuario' });
-  }
+// GET por ID
+const usuariosGetId = async (req, res) => {
+  const { id } = req.params;
+  const usuario = await Usuario.findById(id);
+  if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
+  res.json(usuario.toJSON());
 };
 
 // POST crear usuario
-const usuariosPost = async (req = request, res = response) => {
+const usuariosPost = async (req, res) => {
+  const { nombre, apellido, correo, password, rol } = req.body;
   try {
-    req.body.rol = req.body.rol?.toUpperCase();
+    const existe = await Usuario.findOne({ correo });
+    if (existe) return res.status(400).json({ msg: "El correo ya está registrado" });
 
-    const { nombre, apellido, correo, password, rol } = req.body;
     const usuario = new Usuario({ nombre, apellido, correo, password, rol });
 
-    // Encriptar contraseña
-    const salt = bcrypt.genSaltSync(10);
+    // encriptar contraseña
+    const salt = bcrypt.genSaltSync();
     usuario.password = bcrypt.hashSync(password, salt);
 
     await usuario.save();
 
-    res.json({
-      mensaje: 'Usuario cargado correctamente',
-      usuario
+    // generar JWT
+    const token = await generarJWT(usuario.id);
+
+    res.status(201).json({
+      usuario: usuario.toJSON(),
+      token
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: 'Error al crear usuario' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ msg: "Error al crear usuario" });
   }
 };
 
 // PUT actualizar usuario
-const usuarioPut = async (req = request, res = response) => {
+const usuarioPut = async (req, res) => {
+  const { id } = req.params;
+  const { nombre, apellido, telefono, direccion, provincia, localidad, codigoPostal, dni } = req.body;
   try {
-    const { id } = req.params;
-    const { password, correo, ...resto } = req.body;
-
-    if (password) {
-      const salt = bcrypt.genSaltSync(10);
-      resto.password = bcrypt.hashSync(password, salt);
-    }
-
-    if (correo) {
-      resto.correo = correo;
-    }
-
-    const usuario = await Usuario.findByIdAndUpdate(id, resto, { new: true });
-
-    if (!usuario) {
-      return res.status(404).json({ msg: 'Usuario no encontrado' });
-    }
-
-    res.json({
-      mensaje: 'Usuario actualizado correctamente',
-      usuario
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: 'Error al actualizar usuario' });
-  }
-};
-
-// DELETE lógico (inhabilitar usuario)
-const usuarioDelete = async (req = request, res = response) => {
-  try {
-    const { id } = req.params;
     const usuario = await Usuario.findById(id);
+    if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
 
-    if (!usuario) {
-      return res.status(404).json({ msg: 'Usuario no encontrado' });
-    }
+    if (nombre !== undefined) usuario.nombre = nombre;
+    if (apellido !== undefined) usuario.apellido = apellido;
+    if (telefono !== undefined) usuario.telefono = telefono;
+    if (direccion !== undefined) usuario.direccion = direccion;
+    if (provincia !== undefined) usuario.provincia = provincia;
+    if (localidad !== undefined) usuario.localidad = localidad;
+    if (codigoPostal !== undefined) usuario.codigoPostal = codigoPostal;
+    if (dni !== undefined) usuario.dni = dni;
 
-    if (!usuario.estado) {
-      return res.status(400).json({ msg: 'Usuario ya está inhabilitado' });
-    }
+    await usuario.save();
 
-    const usuarioInhabilitado = await Usuario.findByIdAndUpdate(
-      id,
-      { estado: false },
-      { new: true }
-    );
-
-    res.json({
-      mensaje: 'Usuario inhabilitado exitosamente',
-      usuarioInhabilitado
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: 'Error al eliminar usuario' });
+    res.json(usuario.toJSON());
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ msg: "Error al actualizar usuario" });
   }
 };
 
-module.exports = {
-  usuariosGet,
-  usuariosGetId,
-  usuariosPost,
-  usuarioPut,
-  usuarioDelete,
+// DELETE lógico
+const usuarioDelete = async (req, res) => {
+  const { id } = req.params;
+  const usuario = await Usuario.findByIdAndUpdate(id, { estado: false }, { new: true });
+  res.json(usuario.toJSON());
 };
+
+// GET perfil propio
+const me = async (req, res) => {
+  const usuario = await Usuario.findById(req.usuario._id); // usamos req.usuario del middleware validarJWT
+  if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
+  res.json(usuario.toJSON());
+};
+
+module.exports = { usuariosGet, usuariosGetId, usuariosPost, usuarioPut, usuarioDelete, me };
+
 

@@ -1,17 +1,17 @@
-const mongoose = require('mongoose');
+const { Schema, model } = require("mongoose");
 
-const ProductoSchema = new mongoose.Schema({
+const ProductoSchema = new Schema({
   nombre: { type: String, required: true },
-  descripcion: String,
-  precio: { type: Number, required: true },
-  imagen: String,
-  categoria: {
-    type: String,
-    required: true,
-    enum: ['accesorios', 'calzado', 'indumentaria'] // opcional: limitar categorías
-  }
-});
+  precio: { type: Number, required: true },   // 👈 número, no string
+  descripcion: { type: String },
+  imagenes: [{ type: String }], // array de URLs
+  stock: { type: Number, default: 0 },
+  categoria: { type: Schema.Types.ObjectId, ref: "Categoria", required: true },
+  usuario: { type: Schema.Types.ObjectId, ref: "Usuario", required: true },
+  estado: { type: Boolean, default: true },
+  fechaRegistro: { type: Date, default: Date.now }
+}, { timestamps: true });
 
-// 👇 evita el OverwriteModelError
-module.exports = mongoose.models.Producto || mongoose.model('Producto', ProductoSchema);
+module.exports = model("Producto", ProductoSchema);
+
 
