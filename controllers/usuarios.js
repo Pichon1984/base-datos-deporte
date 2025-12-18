@@ -4,18 +4,31 @@ const { generarJWT } = require('../helpers/generar-jwt');
 
 
 
-// GET con búsqueda y paginación
 const usuariosGet = async (req, res) => {
-  const { q = "", page = 1, limit = 10 } = req.query;
-  const filtro = q ? { nombre: new RegExp(q, "i") } : {};
+  const { search = "", page = 1, limit = 10 } = req.query;
+
+  // 🔍 Filtro dinámico: nombre, apellido o correo
+  const filtro = search
+    ? {
+        $or: [
+          { nombre: { $regex: search, $options: "i" } },
+          { apellido: { $regex: search, $options: "i" } },
+          { correo: { $regex: search, $options: "i" } }
+        ]
+      }
+    : {};
+
+  const skip = (Number(page) - 1) * Number(limit);
 
   const [usuarios, total] = await Promise.all([
-    Usuario.find(filtro).skip((page - 1) * limit).limit(Number(limit)),
+    Usuario.find(filtro).skip(skip).limit(Number(limit)),
     Usuario.countDocuments(filtro)
   ]);
 
   res.json({ total, usuarios });
 };
+
+
 
 // GET por ID
 const usuariosGetId = async (req, res) => {
