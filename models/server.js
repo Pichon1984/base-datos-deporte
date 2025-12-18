@@ -1,62 +1,85 @@
-const express = require('express');
-const cors = require('cors');
-const { dbConnection } = require('../database/config');
+const express = require("express");
+const cors = require("cors");
+const morgan = require("morgan");
+const fs = require("fs");
+const path = require("path");
+
+// Importar rutas
+const enviosRoutes = require("../routes/envios");
+const comprasRoutes = require("../routes/compras"); 
+const pagosRouter = require("../routes/pagos"); // 👈 corregido
 
 class Server {
-    constructor() {
-        this.app = express();
-        this.port = process.env.PORT || 3000;
+  constructor() {
+    this.app = express();
+    this.port = process.env.PORT || 3000;
 
-        // Definir paths de la API
-        this.usuariosPath   = '/api/usuarios';
-        this.authPath       = '/api/auth';
-        this.categoriaPath  = '/api/categorias';
-        this.productoPath   = '/api/productos';
-        this.compraPath     = '/api/compra';
-        this.carritoPath    = '/api/carrito';
-        this.ordenesPath    = '/api/ordenes'; // 👈 nuevo path para órdenes
+    // Rutas base
+    this.paths = {
+      auth: "/api/auth",
+      usuarios: "/api/usuarios",
+      productos: "/api/productos",
+      categorias: "/api/categorias",
+      ordenes: "/api/ordenes",
+      carrito: "/api/carrito",
+      consultas: "/api/consultas",
+      cuotas: "/api/cuotas",
+      envios: "/api/envios",
+      compras: "/api/compras",
+      pagos: "/api/pagos" // 👈 agregamos pagos en paths
+    };
 
-        // Conectar con la base de datos
-        this.connectarDb();
+    // Middlewares
+    this.middlewares();
 
-        // Middlewares
-        this.middleware();
+    // Rutas
+    this.routes();
+  }
 
-        // Rutas de la aplicación
-        this.routes();
+  middlewares() {
+    this.app.use(
+      cors({
+        origin: process.env.FRONTEND_URL || "http://localhost:5173",
+        credentials: true
+      })
+    );
+
+    this.app.use(express.json());
+    this.app.use(morgan("dev"));
+
+    const logDir = path.join(__dirname, "../logs");
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir);
     }
 
-    async connectarDb() {
-        await dbConnection();
-    }
+    const accessLogStream = fs.createWriteStream(
+      path.join(logDir, "access.log"),
+      { flags: "a" }
+    );
+    this.app.use(morgan("combined", { stream: accessLogStream }));
 
-    middleware() {
-        // CORS
-        this.app.use(cors());
+    this.app.use(express.static("public"));
+  }
 
-        // Leer JSON en el body
-        this.app.use(express.json());
+  routes() {
+    this.app.use(this.paths.auth, require("../routes/auth"));
+    this.app.use(this.paths.usuarios, require("../routes/usuarios"));
+    this.app.use(this.paths.productos, require("../routes/productos"));
+    this.app.use(this.paths.categorias, require("../routes/categorias"));
+    this.app.use(this.paths.ordenes, require("../routes/ordenes"));
+    this.app.use(this.paths.carrito, require("../routes/carritoRoutes"));
+    this.app.use(this.paths.consultas, require("../routes/consultas"));
+    this.app.use(this.paths.cuotas, require("../routes/cuotas"));
+    this.app.use(this.paths.envios, enviosRoutes);
+    this.app.use(this.paths.compras, comprasRoutes);
+    this.app.use(this.paths.pagos, pagosRouter); // 👈 corregido
+  }
 
-        // Carpeta pública
-        this.app.use(express.static('public'));
-    }
-
-    routes() {
-        this.app.use(this.authPath, require('../routes/auth'));
-        this.app.use(this.usuariosPath, require('../routes/usuarios'));
-        this.app.use(this.categoriaPath, require('../routes/categorias'));
-        this.app.use(this.productoPath, require('../routes/productos'));
-        this.app.use(this.compraPath, require('../routes/compra'));
-        this.app.use(this.carritoPath, require('../routes/carritoRoutes'));
-        this.app.use(this.ordenesPath, require('../routes/ordenes')); // 👈 integración órdenes
-    }
-
-    listen() {
-        this.app.listen(this.port, () => {
-            console.log('server online port:', this.port);
-        });
-    }
+  listen() {
+    this.app.listen(this.port, () => {
+      console.log("Servidor corriendo en puerto", this.port);
+    });
+  }
 }
 
 module.exports = Server;
-

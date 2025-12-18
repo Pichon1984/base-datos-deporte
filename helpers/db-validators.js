@@ -33,11 +33,21 @@ const productoExiste = async (id = '') => {
     throw new Error(`El id ${id} no corresponde a ningún producto registrado`);
   }
 };
+// Validar si el rol es válido
+const rolValido = async (rol = '') => {
+  const rolesPermitidos = ['ADMIN_ROLE', 'USER_ROLE', 'VENTAS_ROLE'];
+  if (!rolesPermitidos.includes(rol)) {
+    throw new Error(`El rol ${rol} no es válido`);
+  }
+};
+
+
 
 module.exports = {
   emailExiste,
   usuarioExiste,
   categoriaExiste,
   productoExiste,
+  rolValido,
 
 };
