@@ -9,15 +9,15 @@ const {
 } = require("../controllers/productos");
 const { validarJWT } = require("../middlewares/validar-jwt");
 const { validarCampos } = require("../middlewares/validarCampos");
-const { productoExiste } = require("../helpers/db-validators");
+const { productoExiste, categoriaExiste } = require("../helpers/db-validators");
 const { validarRol } = require("../middlewares/validarRol");
 
 const router = Router();
 
-// ✅ Listar productos (con búsqueda)
+// ✅ Listar productos (público, con búsqueda/filtros)
 router.get("/", productosGet);
 
-// ✅ Obtener producto por ID
+// ✅ Obtener producto por ID (público)
 router.get(
   "/:id",
   [
@@ -33,8 +33,11 @@ router.post(
   "/",
   [
     validarJWT,
-    validarRol(["ADMIN"]), // 👈 corregido
+    validarRol(["ADMIN"]),
     check("nombre", "El nombre es obligatorio").notEmpty(),
+    check("precio", "El precio debe ser un número válido").isNumeric(),
+    check("categoria", "La categoría no es válida").isMongoId(),
+    check("categoria").custom(categoriaExiste), // 👈 validamos que exista la categoría
     validarCampos
   ],
   productoPost
@@ -67,6 +70,5 @@ router.delete(
 );
 
 module.exports = router;
-
 
 

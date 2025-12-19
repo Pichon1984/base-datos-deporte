@@ -22,7 +22,17 @@ const UsuarioSchema = new Schema({
       talle: { type: String },
       cantidad: { type: Number, default: 1, min: 1 }
     }
-  ]
+  ],
+
+  // 👇 Nuevo bloque para ubicación
+  ubicacion: {
+    ciudad: { type: String },
+    provincia: { type: String },
+    pais: { type: String },
+    lat: { type: Number },
+    lon: { type: Number },
+    updatedAt: { type: Date }
+  }
 }, { timestamps: true });
 
 // Ocultar campos sensibles en las respuestas
