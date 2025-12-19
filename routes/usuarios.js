@@ -4,7 +4,8 @@ const {
   usuariosGetId,
   usuariosPost,
   usuarioDelete,
-  usuarioPut
+  usuarioPut,
+  guardarUbicacion // 👈 añadimos la función del controlador
 } = require('../controllers/usuarios');
 const { validarJWT } = require('../middlewares/validar-jwt');
 const { validarRol } = require('../middlewares/validarRol');
@@ -73,6 +74,11 @@ router.put('/me', [validarJWT], async (req, res) => {
   }
 });
 
+// 📌 POST guardar ubicación del usuario autenticado
+router.post('/ubicacion', [validarJWT], guardarUbicacion);
+
 module.exports = router;
+
+
 
 

@@ -2,12 +2,10 @@ const Usuario = require("../models/usuario");
 const bcrypt = require("bcryptjs");
 const { generarJWT } = require('../helpers/generar-jwt');
 
-
-
+// 🔍 GET todos los usuarios
 const usuariosGet = async (req, res) => {
   const { search = "", page = 1, limit = 10 } = req.query;
 
-  // 🔍 Filtro dinámico: nombre, apellido o correo
   const filtro = search
     ? {
         $or: [
@@ -28,9 +26,7 @@ const usuariosGet = async (req, res) => {
   res.json({ total, usuarios });
 };
 
-
-
-// GET por ID
+// 🔍 GET usuario por ID
 const usuariosGetId = async (req, res) => {
   const { id } = req.params;
   const usuario = await Usuario.findById(id);
@@ -38,7 +34,7 @@ const usuariosGetId = async (req, res) => {
   res.json(usuario.toJSON());
 };
 
-// POST crear usuario
+// ➕ POST crear usuario
 const usuariosPost = async (req, res) => {
   const { nombre, apellido, correo, password, rol } = req.body;
   try {
@@ -66,7 +62,7 @@ const usuariosPost = async (req, res) => {
   }
 };
 
-// PUT actualizar usuario
+// ✏️ PUT actualizar usuario por ID
 const usuarioPut = async (req, res) => {
   const { id } = req.params;
   const { nombre, apellido, telefono, direccion, provincia, localidad, codigoPostal, dni } = req.body;
@@ -92,20 +88,58 @@ const usuarioPut = async (req, res) => {
   }
 };
 
-// DELETE lógico
+// 🗑️ DELETE lógico
 const usuarioDelete = async (req, res) => {
   const { id } = req.params;
   const usuario = await Usuario.findByIdAndUpdate(id, { estado: false }, { new: true });
   res.json(usuario.toJSON());
 };
 
-// GET perfil propio
+// 👤 GET perfil propio
 const me = async (req, res) => {
-  const usuario = await Usuario.findById(req.usuario._id); // usamos req.usuario del middleware validarJWT
+  const usuario = await Usuario.findById(req.usuario._id);
   if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
   res.json(usuario.toJSON());
 };
 
-module.exports = { usuariosGet, usuariosGetId, usuariosPost, usuarioPut, usuarioDelete, me };
+// 📍 POST guardar ubicación del usuario logueado
+const guardarUbicacion = async (req, res) => {
+  try {
+    const { ciudad, provincia, pais, lat, lon } = req.body;
+    const usuarioId = req.usuario._id;
 
+    const usuario = await Usuario.findById(usuarioId);
+    if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
+
+    usuario.ubicacion = {
+      ciudad,
+      provincia,
+      pais,
+      lat,
+      lon,
+      updatedAt: new Date()
+    };
+
+    await usuario.save();
+
+    res.json({
+      ok: true,
+      message: "Ubicación guardada correctamente",
+      ubicacion: usuario.ubicacion
+    });
+  } catch (error) {
+    console.error("Error al guardar ubicación:", error);
+    res.status(500).json({ ok: false, msg: "Error al guardar ubicación" });
+  }
+};
+
+module.exports = {
+  usuariosGet,
+  usuariosGetId,
+  usuariosPost,
+  usuarioPut,
+  usuarioDelete,
+  me,
+  guardarUbicacion
+};
 
