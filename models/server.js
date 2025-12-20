@@ -35,19 +35,18 @@ class Server {
       process.env.FRONTEND_URL || "https://react-deporte.netlify.app"
     ];
 
-    this.app.use(
-      cors({
-        origin: (origin, callback) => {
-          if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-          } else {
-            callback(new Error("Not allowed by CORS"));
-          }
-        },
-        credentials: true,
-      })
-    );
+    const corsOptions = {
+      origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
+      credentials: true,
+    };
 
+    this.app.use(cors(corsOptions));
     this.app.use(express.json());
     this.app.use(morgan("dev"));
 
@@ -89,6 +88,5 @@ class Server {
 }
 
 module.exports = Server;
-
 
 

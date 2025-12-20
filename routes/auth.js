@@ -11,7 +11,7 @@ router.post("/register", async (req, res) => {
   const {
     nombre,
     apellido,
-    correo,       // 👈 mantenemos "correo" porque en local funcionaba así
+    correo,
     password,
     telefono,
     direccion,
@@ -22,17 +22,14 @@ router.post("/register", async (req, res) => {
   } = req.body;
 
   try {
-    // Verificar si el correo ya existe
     const existe = await Usuario.findOne({ correo });
     if (existe) {
       return res.status(400).json({ msg: "El correo ya está registrado" });
     }
 
-    // Encriptar contraseña
     const salt = bcrypt.genSaltSync();
     const hashedPassword = bcrypt.hashSync(password, salt);
 
-    // Crear usuario
     const usuario = new Usuario({
       nombre,
       apellido,
@@ -50,7 +47,6 @@ router.post("/register", async (req, res) => {
 
     await usuario.save();
 
-    // Generar JWT
     const token = await generarJWT(usuario.id);
 
     res.status(201).json({
@@ -66,12 +62,12 @@ router.post("/register", async (req, res) => {
 
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
-  const { correo, password } = req.body; // 👈 mantenemos "correo"
+  const { correo, password } = req.body;
 
   try {
     const usuario = await Usuario.findOne({ correo });
     if (!usuario) {
-      return res.status(400).json({ msg: "Usuario / Password incorrectos - correo" });
+      return res.status(400).json({ msg: "Usuario / Password incorrectos" });
     }
 
     if (!usuario.estado) {
@@ -80,7 +76,7 @@ router.post("/login", async (req, res) => {
 
     const validPassword = bcrypt.compareSync(password, usuario.password);
     if (!validPassword) {
-      return res.status(400).json({ msg: "Usuario / Password incorrectos - password" });
+      return res.status(400).json({ msg: "Usuario / Password incorrectos" });
     }
 
     const token = await generarJWT(usuario.id);
@@ -106,4 +102,5 @@ router.get("/me", validarJWT, async (req, res) => {
 });
 
 module.exports = router;
+
 
