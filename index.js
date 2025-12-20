@@ -1,35 +1,26 @@
-require('dotenv').config();
-const mongoose = require('mongoose');
-const Server = require('./models/server');
-const cloudinary = require('cloudinary').v2;
+require("dotenv").config();
+const mongoose = require("mongoose");
+const Server = require("./models/server");
+const cloudinary = require("cloudinary").v2;
 
-// ✅ Configuración de Cloudinary
+// Configuración de Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.API_KEY_CLOUDINARY,
   api_secret: process.env.API_SECRET_CLOUDINARY,
-  secure: true
+  secure: true,
 });
 
-// ✅ Función principal
-const startServer = async () => {
-  try {
-    // 🔗 Conexión a MongoDB
-    await mongoose.connect(process.env.MONGODB_CNN, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log('✅ Base de datos conectada');
+// Conexión a MongoDB Atlas
+mongoose.connect(process.env.MONGODB_CNN)
+  .then(() => console.log("✅ Base de datos conectada"))
+  .catch(err => console.error("❌ Error al conectar a MongoDB:", err));
 
-    // 🚀 Levantar servidor solo si la DB está lista
-    const server = new Server();
-    server.listen();
+// 🚀 Exportar la app para Vercel
+const server = new Server();
+module.exports = server.app;
 
-  } catch (error) {
-    console.error('❌ Error conectando a la base de datos:', error);
-    process.exit(1); // Detener proceso si falla la conexión
-  }
-};
 
-startServer();
+
+
 
