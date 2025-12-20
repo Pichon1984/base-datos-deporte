@@ -29,38 +29,44 @@ class Server {
     this.routes();
   }
 
-  middlewares() {
-    const allowedOrigins = [
-      "http://localhost:5173",
-      process.env.FRONTEND_URL || "https://react-deporte.netlify.app"
-    ];
+middlewares() {
+  const allowedOrigins = [
+    "http://localhost:5173",
+    process.env.FRONTEND_URL || "https://react-deporte.netlify.app"
+  ];
 
-    // ✅ Configuración de CORS más simple y robusta
-    this.app.use(
-      cors({
-        origin: allowedOrigins,
-        credentials: true,
-      })
-    );
-
-    this.app.use(express.json());
-    this.app.use(morgan("dev"));
-
-    // Logs locales (no se usan en Vercel)
-    if (process.env.NODE_ENV !== "production") {
-      const logDir = path.join(__dirname, "../logs");
-      if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir);
+  const corsOptions = {
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
       }
-      const accessLogStream = fs.createWriteStream(
-        path.join(logDir, "access.log"),
-        { flags: "a" }
-      );
-      this.app.use(morgan("combined", { stream: accessLogStream }));
-    }
+    },
+    credentials: true,
+  };
 
-    this.app.use(express.static("public"));
+  this.app.use(cors(corsOptions));
+  // ❌ No pongas this.app.options("*", cors()); porque rompe con path-to-regexp
+
+  this.app.use(express.json());
+  this.app.use(morgan("dev"));
+
+  if (process.env.NODE_ENV !== "production") {
+    const logDir = path.join(__dirname, "../logs");
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir);
+    }
+    const accessLogStream = fs.createWriteStream(
+      path.join(logDir, "access.log"),
+      { flags: "a" }
+    );
+    this.app.use(morgan("combined", { stream: accessLogStream }));
   }
+
+  this.app.use(express.static("public"));
+}
+
 
   routes() {
     this.app.use("/api/auth", authRoutes);
@@ -84,7 +90,4 @@ class Server {
 }
 
 module.exports = Server;
-
-
-
 
