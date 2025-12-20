@@ -35,15 +35,10 @@ class Server {
       process.env.FRONTEND_URL || "https://react-deporte.netlify.app"
     ];
 
+    // ✅ Configuración de CORS más simple y robusta
     this.app.use(
       cors({
-        origin: (origin, callback) => {
-          if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-          } else {
-            callback(new Error("Not allowed by CORS"));
-          }
-        },
+        origin: allowedOrigins,
         credentials: true,
       })
     );
@@ -89,6 +84,7 @@ class Server {
 }
 
 module.exports = Server;
+
 
 
 
