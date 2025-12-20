@@ -16,7 +16,14 @@ router.post("/checkout", validarJWT, async (req, res) => {
   try {
     const { envio, productos } = req.body;
 
-    if (!envio || !envio.direccion || !envio.localidad || !envio.provincia) {
+    if (
+      !envio ||
+      !envio.nombre ||
+      !envio.email ||
+      !envio.direccion ||
+      !envio.localidad ||
+      !envio.provincia
+    ) {
       return res.status(400).json({ error: "Datos de envío incompletos" });
     }
 
@@ -75,9 +82,11 @@ router.post("/checkout", validarJWT, async (req, res) => {
   }
 });
 
-// ✅ Webhook de MercadoPago
+// ✅ Webhook de MercadoPago (POST)
 router.post("/webhook", async (req, res) => {
   try {
+    console.log("🔔 Webhook recibido:", req.body);
+
     const { type, data } = req.body;
 
     if (type === "payment" && data?.id) {
@@ -102,11 +111,16 @@ router.post("/webhook", async (req, res) => {
       }
     }
 
-    res.sendStatus(200);
+    res.sendStatus(200); // MercadoPago espera 200 siempre
   } catch (error) {
     console.error("Error en webhook:", error);
     res.sendStatus(500);
   }
+});
+
+// (Opcional) Webhook GET por validaciones de MP
+router.get("/webhook", (req, res) => {
+  res.sendStatus(200);
 });
 
 // ✅ Órdenes del usuario logueado
@@ -212,9 +226,14 @@ router.delete("/:id", validarJWT, async (req, res) => {
     const { id } = req.params;
     const orden = await Orden.findById(id);
 
-    if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
+    if (!orden) {
+      return res.status(404).json({ error: "Orden no encontrada" });
+    }
 
-    if (orden.usuario.toString() !== req.usuario._id.toString() && req.usuario.rol !== "ADMIN") {
+    if (
+      orden.usuario.toString() !== req.usuario._id.toString() &&
+      req.usuario.rol !== "ADMIN"
+    ) {
       return res.status(403).json({ error: "No autorizado para cancelar esta orden" });
     }
 
