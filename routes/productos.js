@@ -37,7 +37,7 @@ router.post(
     check("nombre", "El nombre es obligatorio").notEmpty(),
     check("precio", "El precio debe ser un número válido").isNumeric(),
     check("categoria", "La categoría no es válida").isMongoId(),
-    check("categoria").custom(categoriaExiste), // 👈 validamos que exista la categoría
+    check("categoria").custom(categoriaExiste),
     validarCampos
   ],
   productoPost
@@ -70,5 +70,4 @@ router.delete(
 );
 
 module.exports = router;
-
 

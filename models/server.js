@@ -10,7 +10,7 @@ const usuariosRoutes = require("../routes/usuarios");
 const productosRoutes = require("../routes/productos");
 const categoriasRoutes = require("../routes/categorias");
 const ordenesRoutes = require("../routes/ordenes");
-const carritoRoutes = require("../routes/carrito"); // 👈 confirmar nombre real
+const carritoRoutes = require("../routes/carrito");
 const consultasRoutes = require("../routes/consultas");
 const cuotasRoutes = require("../routes/cuotas");
 const enviosRoutes = require("../routes/envios");
@@ -30,9 +30,20 @@ class Server {
   }
 
   middlewares() {
+    const allowedOrigins = [
+      "http://localhost:5173",
+      process.env.FRONTEND_URL || "https://react-deporte.netlify.app"
+    ];
+
     this.app.use(
       cors({
-        origin: process.env.FRONTEND_URL || "http://localhost:5173",
+        origin: (origin, callback) => {
+          if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+          } else {
+            callback(new Error("Not allowed by CORS"));
+          }
+        },
         credentials: true,
       })
     );

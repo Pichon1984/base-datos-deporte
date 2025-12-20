@@ -30,7 +30,7 @@ const UsuarioSchema = new Schema({
     {
       _id: false,
       productoId: { type: Schema.Types.ObjectId, ref: "Producto", required: true },
-      talle: { type: String },
+      talle: { type: String }, // 👈 mejor marcarlo como obligatorio
       cantidad: { type: Number, default: 1, min: 1 }
     }
   ],
@@ -53,12 +53,4 @@ UsuarioSchema.methods.toJSON = function () {
 };
 
 module.exports = model("Usuario", UsuarioSchema);
-
-
-
-
-
-
-
-
 
