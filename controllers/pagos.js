@@ -1,4 +1,4 @@
-const Compra = require("../models/compra");
+const Compra = require("../models/Compra");
 const mercadopago = require("mercadopago");
 
 const client = new mercadopago.MercadoPagoConfig({
@@ -11,6 +11,7 @@ const iniciarPago = async (req, res) => {
   try {
     const compra = await Compra.findById(req.params.id);
     if (!compra) return res.status(404).json({ error: "Compra no encontrada" });
+
     if (compra.estado !== "pendiente") {
       return res.status(400).json({ error: "La compra no está pendiente de pago" });
     }
@@ -22,12 +23,13 @@ const iniciarPago = async (req, res) => {
         quantity: item.cantidad
       })),
       back_urls: {
-        success: "http://localhost:5173/pago-exitoso",
-        failure: "http://localhost:5173/pago-fallido",
-        pending: "http://localhost:5173/pago-pendiente"
+        success: `https://react-deporte.netlify.app/checkout/success/${compra._id}`,
+        failure: `https://react-deporte.netlify.app/checkout/failure/${compra._id}`,
+        pending: `https://react-deporte.netlify.app/checkout/pending/${compra._id}`
       },
       auto_return: "approved",
-      external_reference: compra._id.toString()
+      external_reference: compra._id.toString(), // ✅ coma corregida
+      notification_url: `${process.env.BASE_URL}/api/ordenes/webhook`
     };
 
     const response = await preference.create({ body: pref });
@@ -40,6 +42,10 @@ const iniciarPago = async (req, res) => {
 };
 
 module.exports = { iniciarPago };
+
+
+
+
 
 
 
