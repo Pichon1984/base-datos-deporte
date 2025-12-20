@@ -9,10 +9,9 @@ const CategoriaSchema = new Schema({
     trim: true       // elimina espacios extra
   },
   descripcion: { type: String, trim: true },
-  estado: { type: Boolean, required: true, default: true }, // activo/inactivo
-  fechaRegistro: { type: Date, default: Date.now },
+  estado: { type: Boolean, default: true }, // activo/inactivo
   usuario: { type: Schema.Types.ObjectId, ref: "Usuario", required: true } // quién creó la categoría
-});
+}, { timestamps: true }); // 👈 agrega createdAt y updatedAt automáticamente
 
 module.exports = model("Categoria", CategoriaSchema);
 
