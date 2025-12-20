@@ -11,8 +11,8 @@ const OrdenSchema = new Schema(
         precio: { type: Number, required: true },
         cantidad: { type: Number, required: true },
         talle: { type: String },
-        envio: { type: String } // método de envío elegido (ej: "Correo Argentino")
-      }
+        envio: { type: String }, // método de envío elegido (ej: "Correo Argentino")
+      },
     ],
 
     envio: {
@@ -23,7 +23,7 @@ const OrdenSchema = new Schema(
       provincia: { type: String, required: true },
       codigoPostal: { type: String },
       telefono: { type: String },
-      pais: { type: String }
+      pais: { type: String },
     },
 
     costoEnvio: { type: Number, default: 0 }, // costo total de envío
@@ -33,14 +33,14 @@ const OrdenSchema = new Schema(
     estado: {
       type: String,
       enum: ["pendiente", "pagado", "cancelado"],
-      default: "pendiente"
+      default: "pendiente",
     },
 
     // Estado del envío (gestión logística)
     estadoEnvio: {
       type: String,
       enum: ["pendiente", "preparando", "enviado", "entregado"],
-      default: "pendiente"
+      default: "pendiente",
     },
 
     // Datos de MercadoPago
@@ -51,20 +51,13 @@ const OrdenSchema = new Schema(
     mp_status_detail: { type: String },
     external_reference: { type: String },
 
-    fecha: { type: Date, default: Date.now }
+    fecha: { type: Date, default: Date.now },
   },
   {
     timestamps: true, // agrega createdAt y updatedAt automáticamente
-    strict: true      // evita guardar campos no definidos en el schema
+    strict: true, // evita guardar campos no definidos en el schema
   }
 );
 
 module.exports = model("Orden", OrdenSchema);
-
-
-
-
-
-
-
 

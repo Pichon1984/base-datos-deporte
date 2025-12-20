@@ -12,15 +12,19 @@ cloudinary.config({
 });
 
 // Conexión a MongoDB Atlas
-mongoose.connect(process.env.MONGODB_CNN)
+mongoose
+  .connect(process.env.MONGODB_CNN)
   .then(() => console.log("✅ Base de datos conectada"))
-  .catch(err => console.error("❌ Error al conectar a MongoDB:", err));
+  .catch((err) => console.error("❌ Error al conectar a MongoDB:", err));
 
-// 🚀 Exportar la app para Vercel
+// 🚀 Inicializar servidor
 const server = new Server();
+
+// 👉 En producción (Vercel) se exporta la app
 module.exports = server.app;
 
-
-
-
+// 👉 En desarrollo local, levantamos el servidor en el puerto
+if (process.env.NODE_ENV !== "production") {
+  server.listen(); // 👈 mejor usar el método listen() de tu clase Server
+}
 

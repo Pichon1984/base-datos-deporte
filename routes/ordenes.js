@@ -8,7 +8,7 @@ const router = express.Router();
 
 // ⚙️ Configuración MercadoPago
 const mpClient = new MercadoPagoConfig({
-  accessToken: process.env.MP_ACCESS_TOKEN
+  accessToken: process.env.MP_ACCESS_TOKEN,
 });
 
 // ✅ Crear preferencia de pago y orden
@@ -16,14 +16,7 @@ router.post("/checkout", validarJWT, async (req, res) => {
   try {
     const { envio, productos } = req.body;
 
-    if (
-      !envio ||
-      !envio.nombre ||
-      !envio.email ||
-      !envio.direccion ||
-      !envio.localidad ||
-      !envio.provincia
-    ) {
+    if (!envio || !envio.nombre || !envio.email) {
       return res.status(400).json({ error: "Datos de envío incompletos" });
     }
 
@@ -38,7 +31,7 @@ router.post("/checkout", validarJWT, async (req, res) => {
       total,
       usuario: req.usuario._id,
       estado: "pendiente",
-      estadoEnvio: "pendiente"
+      estadoEnvio: "pendiente",
     });
     const ordenGuardada = await nuevaOrden.save();
 
@@ -46,20 +39,20 @@ router.post("/checkout", validarJWT, async (req, res) => {
     const response = await preference.create({
       body: {
         items: productos.map(p => ({
-          title: `${p.nombre} (${p.envio || "sin envío"})`,
+          title: p.nombre,
           unit_price: p.precio,
-          quantity: p.cantidad
+          quantity: p.cantidad,
         })),
         payer: { name: envio.nombre, email: envio.email },
         back_urls: {
           success: `${process.env.FRONTEND_URL}/checkout/success/${ordenGuardada._id}`,
           failure: `${process.env.FRONTEND_URL}/checkout/failure/${ordenGuardada._id}`,
-          pending: `${process.env.FRONTEND_URL}/checkout/pending/${ordenGuardada._id}`
+          pending: `${process.env.FRONTEND_URL}/checkout/pending/${ordenGuardada._id}`,
         },
         auto_return: "approved",
         external_reference: ordenGuardada._id.toString(),
-        notification_url: `${process.env.BASE_URL}/api/ordenes/webhook`
-      }
+        notification_url: `${process.env.BASE_URL}/api/ordenes/webhook`,
+      },
     });
 
     ordenGuardada.external_reference = ordenGuardada._id.toString();
@@ -74,7 +67,7 @@ router.post("/checkout", validarJWT, async (req, res) => {
       estado: ordenGuardada.estado,
       estadoEnvio: ordenGuardada.estadoEnvio,
       total: ordenGuardada.total,
-      costoEnvio: ordenGuardada.costoEnvio
+      costoEnvio: ordenGuardada.costoEnvio,
     });
   } catch (error) {
     console.error("Error en checkout:", error);
@@ -82,11 +75,9 @@ router.post("/checkout", validarJWT, async (req, res) => {
   }
 });
 
-// ✅ Webhook de MercadoPago (POST)
+// ✅ Webhook de MercadoPago
 router.post("/webhook", async (req, res) => {
   try {
-    console.log("🔔 Webhook recibido:", req.body);
-
     const { type, data } = req.body;
 
     if (type === "payment" && data?.id) {
@@ -97,7 +88,7 @@ router.post("/webhook", async (req, res) => {
       const status = payment.status;
 
       const orden = await Orden.findById(ordenId);
-      if (orden && orden.mp_payment_id !== String(payment.id)) {
+      if (orden) {
         orden.mp_payment_id = String(payment.id);
         orden.mp_status = payment.status;
         orden.mp_status_detail = payment.status_detail;
@@ -111,112 +102,10 @@ router.post("/webhook", async (req, res) => {
       }
     }
 
-    res.sendStatus(200); // MercadoPago espera 200 siempre
+    res.sendStatus(200);
   } catch (error) {
     console.error("Error en webhook:", error);
     res.sendStatus(500);
-  }
-});
-
-// (Opcional) Webhook GET por validaciones de MP
-router.get("/webhook", (req, res) => {
-  res.sendStatus(200);
-});
-
-// ✅ Órdenes del usuario logueado
-router.get("/mias", validarJWT, async (req, res) => {
-  try {
-    const ordenes = await Orden.find({ usuario: req.usuario._id })
-      .populate("productos.productoId");
-    res.json(ordenes);
-  } catch (error) {
-    console.error("Error al obtener órdenes del usuario:", error);
-    res.status(500).json({ error: "Error al obtener tus órdenes" });
-  }
-});
-
-// ✅ Todas las órdenes (solo admin)
-router.get("/", [validarJWT, validarRol(["ADMIN"])], async (req, res) => {
-  try {
-    const ordenes = await Orden.find()
-      .populate("productos.productoId")
-      .populate("usuario");
-    res.json(ordenes);
-  } catch (error) {
-    console.error("Error al obtener todas las órdenes:", error);
-    res.status(500).json({ error: "Error al obtener las órdenes" });
-  }
-});
-
-// ✅ Actualizar estado de envío (solo admin)
-router.put("/:id/envio", [validarJWT, validarRol(["ADMIN"])], async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { estadoEnvio } = req.body;
-
-    const estadosValidos = ["pendiente", "preparando", "enviado", "entregado"];
-    if (!estadosValidos.includes(estadoEnvio)) {
-      return res.status(400).json({ error: "Estado de envío inválido" });
-    }
-
-    const orden = await Orden.findById(id);
-    if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
-
-    orden.estadoEnvio = estadoEnvio;
-    await orden.save();
-
-    res.json({ ok: true, message: "Estado de envío actualizado", orden });
-  } catch (error) {
-    console.error("Error al actualizar estado de envío:", error);
-    res.status(500).json({ error: "Error al actualizar estado de envío" });
-  }
-});
-
-// ✅ Actualizar estado de pago (solo admin)
-router.put("/:id/pago", [validarJWT, validarRol(["ADMIN"])], async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { estado } = req.body;
-
-    const estadosValidos = ["pendiente", "pagado", "cancelado"];
-    if (!estadosValidos.includes(estado)) {
-      return res.status(400).json({ error: "Estado de pago inválido" });
-    }
-
-    const orden = await Orden.findById(id);
-    if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
-
-    orden.estado = estado;
-    await orden.save();
-
-    res.json({ ok: true, message: "Estado de pago actualizado", orden });
-  } catch (error) {
-    console.error("Error al actualizar estado de pago:", error);
-    res.status(500).json({ error: "Error al actualizar estado de pago" });
-  }
-});
-
-// ✅ Filtrar órdenes (solo admin)
-router.get("/filtrar", [validarJWT, validarRol(["ADMIN"])], async (req, res) => {
-  try {
-    const { estado, desde, hasta } = req.query;
-    const filtro = {};
-
-    if (estado) filtro.estado = estado;
-    if (desde || hasta) {
-      filtro.fecha = {};
-      if (desde) filtro.fecha.$gte = new Date(desde);
-      if (hasta) filtro.fecha.$lte = new Date(hasta);
-    }
-
-    const ordenes = await Orden.find(filtro)
-      .populate("productos.productoId")
-      .populate("usuario");
-
-    res.json(ordenes);
-  } catch (error) {
-    console.error("Error al filtrar órdenes:", error);
-    res.status(500).json({ error: "Error al filtrar órdenes" });
   }
 });
 
@@ -248,4 +137,6 @@ router.delete("/:id", validarJWT, async (req, res) => {
 });
 
 module.exports = router;
+
+
 
