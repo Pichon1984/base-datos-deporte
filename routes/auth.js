@@ -8,7 +8,18 @@ const router = Router();
 
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
-  const { nombre, apellido, correo, password } = req.body;
+  const {
+    nombre,
+    apellido,
+    correo,
+    password,
+    telefono,
+    direccion,
+    provincia,
+    localidad,
+    codigoPostal,
+    dni
+  } = req.body;
 
   try {
     // Verificar si el correo ya existe
@@ -21,19 +32,25 @@ router.post("/register", async (req, res) => {
     const salt = bcrypt.genSaltSync();
     const hashedPassword = bcrypt.hashSync(password, salt);
 
-    // Crear usuario
+    // Crear usuario con todos los campos
     const usuario = new Usuario({
       nombre,
       apellido,
       correo,
       password: hashedPassword,
-      estado: true, // activo por defecto
-      rol: "CLIENTE", // rol por defecto
+      telefono,
+      direccion,
+      provincia,
+      localidad,
+      codigoPostal,
+      dni,
+      estado: true,
+      rol: "CLIENTE",
     });
 
     await usuario.save();
 
-    // Generar JWT con helper
+    // Generar JWT
     const token = await generarJWT(usuario.id);
 
     res.status(201).json({
@@ -52,24 +69,20 @@ router.post("/login", async (req, res) => {
   const { correo, password } = req.body;
 
   try {
-    // Buscar usuario por correo
     const usuario = await Usuario.findOne({ correo });
     if (!usuario) {
       return res.status(400).json({ msg: "Usuario / Password incorrectos - correo" });
     }
 
-    // Verificar estado
     if (!usuario.estado) {
       return res.status(403).json({ msg: "Usuario inactivo" });
     }
 
-    // Verificar contraseña
     const validPassword = bcrypt.compareSync(password, usuario.password);
     if (!validPassword) {
       return res.status(400).json({ msg: "Usuario / Password incorrectos - password" });
     }
 
-    // Generar JWT con helper
     const token = await generarJWT(usuario.id);
 
     res.json({
@@ -82,7 +95,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// GET /api/auth/me (rehidratar sesión)
+// GET /api/auth/me
 router.get("/me", validarJWT, async (req, res) => {
   try {
     res.json(req.usuario.toJSON());
@@ -93,7 +106,4 @@ router.get("/me", validarJWT, async (req, res) => {
 });
 
 module.exports = router;
-
-
-
 

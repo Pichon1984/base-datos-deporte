@@ -12,9 +12,20 @@ const UsuarioSchema = new Schema({
     match: [/^\S+@\S+\.\S+$/, "Correo inválido"]
   },
   password: { type: String, required: true },
+
+  // Campos adicionales del formulario
+  telefono: { type: String },
+  direccion: { type: String },
+  provincia: { type: String },
+  localidad: { type: String },
+  codigoPostal: { type: String },
+  dni: { type: String },
+
+  // Rol y estado
   rol: { type: String, enum: ["ADMIN", "CLIENTE"], default: "CLIENTE" },
   estado: { type: Boolean, default: true },
 
+  // Carrito de compras
   carrito: [
     {
       _id: false,
@@ -24,7 +35,7 @@ const UsuarioSchema = new Schema({
     }
   ],
 
-  // 👇 Nuevo bloque para ubicación
+  // Ubicación opcional
   ubicacion: {
     ciudad: { type: String },
     provincia: { type: String },
@@ -42,6 +53,8 @@ UsuarioSchema.methods.toJSON = function () {
 };
 
 module.exports = model("Usuario", UsuarioSchema);
+
+
 
 
 
