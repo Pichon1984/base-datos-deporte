@@ -3608,3 +3608,8 @@
 ::1 - - [20/Dec/2025:19:21:17 +0000] "GET /api/envios/andreani?origen=1000&destino=4000&peso=1 HTTP/1.1" 403 192 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
 ::1 - - [20/Dec/2025:19:42:54 +0000] "POST /api/usuarios HTTP/1.1" 201 413 "-" "PostmanRuntime/7.51.0"
 ::1 - - [20/Dec/2025:19:43:54 +0000] "POST /api/auth/login HTTP/1.1" 200 413 "-" "PostmanRuntime/7.51.0"
+::1 - - [20/Dec/2025:20:13:22 +0000] "GET /api/productos?categoria=indumentaria HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+::1 - - [20/Dec/2025:20:13:24 +0000] "GET /api/productos?categoria=accesorios HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+::1 - - [20/Dec/2025:20:22:02 +0000] "GET /api/productos?categoria=calzado HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+::1 - - [20/Dec/2025:20:22:03 +0000] "GET /api/productos?categoria=indumentaria HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
+::1 - - [20/Dec/2025:20:22:05 +0000] "GET /api/productos?categoria=accesorios HTTP/1.1" 304 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0"
