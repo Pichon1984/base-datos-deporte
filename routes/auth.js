@@ -11,7 +11,7 @@ router.post("/register", async (req, res) => {
   const {
     nombre,
     apellido,
-    correo,
+    correo,       // 👈 mantenemos "correo" porque en local funcionaba así
     password,
     telefono,
     direccion,
@@ -32,7 +32,7 @@ router.post("/register", async (req, res) => {
     const salt = bcrypt.genSaltSync();
     const hashedPassword = bcrypt.hashSync(password, salt);
 
-    // Crear usuario con todos los campos
+    // Crear usuario
     const usuario = new Usuario({
       nombre,
       apellido,
@@ -66,7 +66,7 @@ router.post("/register", async (req, res) => {
 
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
-  const { correo, password } = req.body;
+  const { correo, password } = req.body; // 👈 mantenemos "correo"
 
   try {
     const usuario = await Usuario.findOne({ correo });
