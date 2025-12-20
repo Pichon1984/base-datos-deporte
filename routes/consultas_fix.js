@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const Consulta = require("../models/Consulta");
+const Consulta = require("../models/consulta");
 const { validarJWT } = require("../middlewares/validar-jwt");
 
 const router = Router();

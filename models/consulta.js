@@ -9,7 +9,7 @@ const consultaSchema = new Schema({
   respuesta: { type: String } // 👈 nueva propiedad
 });
 
-module.exports = model("Consulta", consultaSchema);
+module.exports = model("consulta", consultaSchema);
 
 
 
