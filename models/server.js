@@ -46,7 +46,20 @@ class Server {
       credentials: true,
     };
 
+    // ✅ CORS
     this.app.use(cors(corsOptions));
+
+    // ✅ Manejo explícito de preflight OPTIONS
+    this.app.use((req, res, next) => {
+      res.header("Access-Control-Allow-Origin", process.env.FRONTEND_URL || "https://react-deporte.netlify.app");
+      res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      if (req.method === "OPTIONS") {
+        return res.sendStatus(200);
+      }
+      next();
+    });
+
     this.app.use(express.json());
     this.app.use(morgan("dev"));
 
@@ -88,5 +101,4 @@ class Server {
 }
 
 module.exports = Server;
-
 
