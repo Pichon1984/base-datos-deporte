@@ -6,17 +6,17 @@ const fs = require("fs");
 const path = require("path");
 
 // Importar todas las rutas
-const authRoutes = require("../routes/auth");
-const usuariosRoutes = require("../routes/usuarios");
-const productosRoutes = require("../routes/productos");
-const categoriasRoutes = require("../routes/categorias");
-const ordenesRoutes = require("../routes/ordenes");
-const carritoRoutes = require("../routes/carrito");
-const consultasRoutes = require("../routes/consultas");
-const cuotasRoutes = require("../routes/cuotas");
-const enviosRoutes = require("../routes/envios");
-const comprasRoutes = require("../routes/compras");
-const pagosRoutes = require("../routes/pagos");
+const authRoutes = require("./routes/auth");
+const usuariosRoutes = require("./routes/usuarios");
+const productosRoutes = require("./routes/productos");
+const categoriasRoutes = require("./routes/categorias");
+const ordenesRoutes = require("./routes/ordenes");
+const carritoRoutes = require("./routes/carrito");
+const consultasRoutes = require("./routes/consultas");
+const cuotasRoutes = require("./routes/cuotas");
+const enviosRoutes = require("./routes/envios");
+const comprasRoutes = require("./routes/compras");
+const pagosRoutes = require("./routes/pagos");
 
 class Server {
   constructor() {
