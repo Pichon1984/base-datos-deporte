@@ -30,33 +30,33 @@ class Server {
   }
 
   middlewares() {
+    // 🔧 Lista de orígenes permitidos
     const allowedOrigins = [
-      "http://localhost:5173",
-      process.env.FRONTEND_URL || "https://react-deporte.netlify.app"
+      "http://localhost:5173",                          // frontend local
+      process.env.FRONTEND_URL || "https://react-deporte.netlify.app" // frontend producción
     ];
 
-    const corsOptions = {
-      origin: function (origin, callback) {
+    // 🔧 Configuración de CORS
+    this.app.use(cors({
+      origin: (origin, callback) => {
+        // Permitir requests sin origin (ej. Postman) o si está en la lista
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
-          // en vez de lanzar error, devolvemos false
+          console.warn("❌ CORS bloqueado para:", origin);
           callback(null, false);
         }
       },
-      credentials: true,
-    };
+      credentials: true
+    }));
 
-    // ✅ CORS global
-    this.app.use(cors(corsOptions));
-
-    // ✅ Body parser
+    // 📦 Body parser
     this.app.use(express.json());
 
-    // ✅ Logger
+    // 📦 Logger
     this.app.use(morgan("dev"));
 
-    // Logs locales (no se usan en Vercel)
+    // 📦 Logs locales (solo en desarrollo)
     if (process.env.NODE_ENV !== "production") {
       const logDir = path.join(__dirname, "../logs");
       if (!fs.existsSync(logDir)) {
@@ -69,6 +69,7 @@ class Server {
       this.app.use(morgan("combined", { stream: accessLogStream }));
     }
 
+    // 📦 Archivos estáticos
     this.app.use(express.static("public"));
   }
 
@@ -88,10 +89,11 @@ class Server {
 
   listen() {
     this.app.listen(this.port, () => {
-      console.log("🚀 Servidor corriendo en puerto", this.port);
+      console.log(`🚀 Servidor corriendo en puerto ${this.port}`);
     });
   }
 }
 
 module.exports = Server;
+
 
