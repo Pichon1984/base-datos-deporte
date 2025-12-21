@@ -143,12 +143,14 @@ router.post("/forgot-password", async (req, res) => {
 
     // Generar token de reset
     const resetToken = crypto.randomBytes(32).toString("hex");
-    usuario.resetToken = resetToken;
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+    usuario.resetToken = hashedToken;
     usuario.resetTokenExpire = Date.now() + 3600000; // 1 hora
     await usuario.save();
 
-    // Aquí podrías enviar el token por email con nodemailer
-    // Ejemplo: enviar un link https://frontend/reset-password?token=resetToken
+    // Aquí deberías enviar el resetToken por email
+    // Ejemplo: https://frontend/reset-password?token=${resetToken}
 
     res.json({ msg: "Token de recuperación generado", token: resetToken });
   } catch (error) {
@@ -165,8 +167,10 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ msg: "Token y nueva contraseña son obligatorios" });
     }
 
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
     const usuario = await Usuario.findOne({
-      resetToken: token,
+      resetToken: hashedToken,
       resetTokenExpire: { $gt: Date.now() }
     });
 
@@ -189,4 +193,3 @@ router.post("/reset-password", async (req, res) => {
 });
 
 module.exports = router;
-
