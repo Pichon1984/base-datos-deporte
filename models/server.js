@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
@@ -30,33 +31,34 @@ class Server {
   }
 
   middlewares() {
+    // 🔧 Lista de orígenes permitidos
     const allowedOrigins = [
-      "http://localhost:5173",
-      process.env.FRONTEND_URL || "https://react-deporte.netlify.app"
+      "http://localhost:5173", // frontend local
+      process.env.FRONTEND_URL || "https://react-deporte.netlify.app" // frontend producción
     ];
 
-    const corsOptions = {
-      origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          // en vez de lanzar error, devolvemos false
-          callback(null, false);
-        }
-      },
-      credentials: true,
-    };
+    // 🔧 Configuración de CORS
+    this.app.use(
+      cors({
+        origin: (origin, callback) => {
+          if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+          } else {
+            console.warn("❌ CORS bloqueado para:", origin);
+            callback(null, false);
+          }
+        },
+        credentials: true
+      })
+    );
 
-    // ✅ CORS global
-    this.app.use(cors(corsOptions));
-
-    // ✅ Body parser
+    // 📦 Body parser
     this.app.use(express.json());
 
-    // ✅ Logger
+    // 📦 Logger
     this.app.use(morgan("dev"));
 
-    // Logs locales (no se usan en Vercel)
+    // 📦 Logs locales (solo en desarrollo)
     if (process.env.NODE_ENV !== "production") {
       const logDir = path.join(__dirname, "../logs");
       if (!fs.existsSync(logDir)) {
@@ -69,10 +71,19 @@ class Server {
       this.app.use(morgan("combined", { stream: accessLogStream }));
     }
 
+    // 📦 Archivos estáticos
     this.app.use(express.static("public"));
   }
 
   routes() {
+    // Endpoint de prueba para validar deploy en Vercel
+    this.app.get("/api/test", (req, res) => {
+      res.json({
+        ok: true,
+        mensaje: "MongoDB conectado y backend funcionando en Vercel 🚀"
+      });
+    });
+
     this.app.use("/api/auth", authRoutes);
     this.app.use("/api/usuarios", usuariosRoutes);
     this.app.use("/api/productos", productosRoutes);
@@ -88,7 +99,7 @@ class Server {
 
   listen() {
     this.app.listen(this.port, () => {
-      console.log("🚀 Servidor corriendo en puerto", this.port);
+      console.log(`🚀 Servidor corriendo en puerto ${this.port}`);
     });
   }
 }

@@ -1,9 +1,10 @@
+// index.js
 require("dotenv").config();
 const mongoose = require("mongoose");
 const Server = require("./models/server");
 const cloudinary = require("cloudinary").v2;
 
-// 🔧 Configuración de Cloudinary
+// 🛠️ Configuración de Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.API_KEY_CLOUDINARY,
@@ -20,13 +21,12 @@ mongoose
 // 🚀 Inicializar servidor
 const server = new Server();
 
-// 👉 En producción (Vercel) se exporta la app para que el runtime la use
+// 📦 En producción (Vercel) se exporta la app para que el runtime la use
 if (process.env.NODE_ENV === "production") {
   module.exports = server.app;
 } else {
-  // 👉 En desarrollo local levantamos el servidor en el puerto
+  // 📦 En desarrollo se levanta el servidor normalmente
   server.listen();
 }
-
 
 
