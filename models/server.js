@@ -46,21 +46,13 @@ class Server {
       credentials: true,
     };
 
-    // ✅ CORS
+    // ✅ CORS global
     this.app.use(cors(corsOptions));
 
-    // ✅ Manejo explícito de preflight OPTIONS
-    this.app.use((req, res, next) => {
-      res.header("Access-Control-Allow-Origin", process.env.FRONTEND_URL || "https://react-deporte.netlify.app");
-      res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
-      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-      if (req.method === "OPTIONS") {
-        return res.sendStatus(200);
-      }
-      next();
-    });
-
+    // ✅ Body parser
     this.app.use(express.json());
+
+    // ✅ Logger
     this.app.use(morgan("dev"));
 
     // Logs locales (no se usan en Vercel)
