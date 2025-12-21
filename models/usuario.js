@@ -30,7 +30,7 @@ const UsuarioSchema = new Schema({
     {
       _id: false,
       productoId: { type: Schema.Types.ObjectId, ref: "Producto", required: true },
-      talle: { type: String}, 
+      talle: { type: String }, 
       cantidad: { type: Number, default: 1, min: 1 }
     }
   ],
@@ -42,12 +42,13 @@ const UsuarioSchema = new Schema({
     pais: { type: String },
     lat: { type: Number },
     lon: { type: Number },
-    updatedAt: { type: Date }
+    lastUpdate: { type: Date } // 👈 renombrado para evitar conflicto con timestamps
   },
 
   // Recuperación de contraseña
-  resetToken: { type: String },
-  resetTokenExpire: { type: Date }
+  resetToken: { type: String, default: null },
+  resetTokenExpire: { type: Date, default: null }
+
 }, { timestamps: true });
 
 // Ocultar campos sensibles en las respuestas
@@ -57,3 +58,4 @@ UsuarioSchema.methods.toJSON = function () {
 };
 
 module.exports = model("Usuario", UsuarioSchema);
+
