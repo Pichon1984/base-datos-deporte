@@ -7,14 +7,13 @@ const cloudinary = require("cloudinary").v2;
 // 🛠️ Configuración de Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.API_KEY_CLOUDINARY,
-  api_secret: process.env.API_SECRET_CLOUDINARY,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
   secure: true,
 });
 
 // 🔗 Conexión a MongoDB Atlas
-mongoose
-  .connect(process.env.MONGODB_CNN)
+mongoose.connect(process.env.MONGODB_CNN)
   .then(() => console.log("✅ Base de datos conectada"))
   .catch((err) => console.error("❌ Error al conectar a MongoDB:", err));
 
@@ -28,5 +27,3 @@ if (process.env.NODE_ENV === "production") {
   // 📦 En desarrollo se levanta el servidor normalmente
   server.listen();
 }
-
-
