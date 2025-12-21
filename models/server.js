@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
@@ -32,23 +33,24 @@ class Server {
   middlewares() {
     // 🔧 Lista de orígenes permitidos
     const allowedOrigins = [
-      "http://localhost:5173",                          // frontend local
+      "http://localhost:5173", // frontend local
       process.env.FRONTEND_URL || "https://react-deporte.netlify.app" // frontend producción
     ];
 
     // 🔧 Configuración de CORS
-    this.app.use(cors({
-      origin: (origin, callback) => {
-        // Permitir requests sin origin (ej. Postman) o si está en la lista
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          console.warn("❌ CORS bloqueado para:", origin);
-          callback(null, false);
-        }
-      },
-      credentials: true
-    }));
+    this.app.use(
+      cors({
+        origin: (origin, callback) => {
+          if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+          } else {
+            console.warn("❌ CORS bloqueado para:", origin);
+            callback(null, false);
+          }
+        },
+        credentials: true
+      })
+    );
 
     // 📦 Body parser
     this.app.use(express.json());
@@ -74,6 +76,14 @@ class Server {
   }
 
   routes() {
+    // Endpoint de prueba para validar deploy en Vercel
+    this.app.get("/api/test", (req, res) => {
+      res.json({
+        ok: true,
+        mensaje: "MongoDB conectado y backend funcionando en Vercel 🚀"
+      });
+    });
+
     this.app.use("/api/auth", authRoutes);
     this.app.use("/api/usuarios", usuariosRoutes);
     this.app.use("/api/productos", productosRoutes);
@@ -95,5 +105,4 @@ class Server {
 }
 
 module.exports = Server;
-
 
