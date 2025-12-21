@@ -1,4 +1,3 @@
-// index.js
 require("dotenv").config();
 const mongoose = require("mongoose");
 const Server = require("./server");
@@ -12,18 +11,26 @@ cloudinary.config({
   secure: true,
 });
 
-// 🔗 Conexión a MongoDB Atlas
-mongoose.connect(process.env.MONGODB_CNN)
-  .then(() => console.log("✅ Base de datos conectada"))
-  .catch((err) => console.error("❌ Error al conectar a MongoDB:", err));
-
 // 🚀 Inicializar servidor
 const server = new Server();
 
-// 📦 En producción (Vercel) se exporta la app para que el runtime la use
-if (process.env.NODE_ENV === "production") {
-  module.exports = server.app;
-} else {
-  // 📦 En desarrollo se levanta el servidor normalmente
-  server.listen();
-}
+// 🔗 Conexión a MongoDB Atlas
+mongoose.connect(process.env.MONGODB_CNN, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => {
+  console.log("✅ Base de datos conectada");
+
+  if (process.env.NODE_ENV === "production") {
+    // 📦 En producción (Vercel) se exporta la app
+    module.exports = server.app;
+  } else {
+    // 📦 En desarrollo se levanta el servidor normalmente
+    server.listen();
+  }
+})
+.catch((err) => {
+  console.error("❌ Error al conectar a MongoDB:", err);
+});
+
