@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const Server = require("./models/server");
 const cloudinary = require("cloudinary").v2;
 
-// Configuración de Cloudinary
+// 🔧 Configuración de Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.API_KEY_CLOUDINARY,
@@ -11,7 +11,7 @@ cloudinary.config({
   secure: true,
 });
 
-// Conexión a MongoDB Atlas
+// 🔗 Conexión a MongoDB Atlas
 mongoose
   .connect(process.env.MONGODB_CNN)
   .then(() => console.log("✅ Base de datos conectada"))
@@ -20,11 +20,13 @@ mongoose
 // 🚀 Inicializar servidor
 const server = new Server();
 
-// 👉 En producción (Vercel) se exporta la app
-module.exports = server.app;
-
-// 👉 En desarrollo local, levantamos el servidor en el puerto
-if (process.env.NODE_ENV !== "production") {
-  server.listen(); // 👈 mejor usar el método listen() de tu clase Server
+// 👉 En producción (Vercel) se exporta la app para que el runtime la use
+if (process.env.NODE_ENV === "production") {
+  module.exports = server.app;
+} else {
+  // 👉 En desarrollo local levantamos el servidor en el puerto
+  server.listen();
 }
+
+
 
