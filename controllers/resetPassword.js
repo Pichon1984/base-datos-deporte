@@ -1,27 +1,42 @@
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const Usuario = require("../models/usuario");
 
 const resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
 
   try {
-    const { uid } = jwt.verify(token, process.env.SECRETORPRIVATEKEY);
-
-    const usuario = await Usuario.findById(uid);
-    if (!usuario) {
-      return res.status(404).json({ msg: "Usuario no encontrado" });
+    if (!token || !newPassword) {
+      return res.status(400).json({ msg: "Token y nueva contraseña son obligatorios" });
     }
 
-    const salt = bcrypt.genSaltSync();
-    usuario.password = bcrypt.hashSync(newPassword, salt);
+    // Hashear el token recibido para compararlo con el guardado
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    // Buscar usuario con token válido y no expirado
+    const usuario = await Usuario.findOne({
+      resetToken: hashedToken,
+      resetTokenExpire: { $gt: Date.now() }
+    });
+
+    if (!usuario) {
+      return res.status(400).json({ msg: "Token inválido o expirado" });
+    }
+
+    // Hashear nueva contraseña
+    const salt = await bcrypt.genSalt(10);
+    usuario.password = await bcrypt.hash(newPassword, salt);
+
+    // Limpiar token de recuperación
+    usuario.resetToken = undefined;
+    usuario.resetTokenExpire = undefined;
 
     await usuario.save();
 
     res.json({ msg: "Contraseña actualizada correctamente" });
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ msg: "Token inválido o expirado" });
+    console.error("❌ Error en resetPassword:", error);
+    res.status(500).json({ msg: "Error interno del servidor" });
   }
 };
 
