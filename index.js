@@ -1,7 +1,7 @@
 // index.js
 require("dotenv").config();
 const mongoose = require("mongoose");
-const Server = require("./models/server");
+const Server = require("./server");
 const cloudinary = require("cloudinary").v2;
 
 // 🛠️ Configuración de Cloudinary
