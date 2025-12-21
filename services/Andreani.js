@@ -1,32 +1,32 @@
-const fetch = require('node-fetch');
-const ANDREANI = require('../config/Andreani');
+const fetch = require("node-fetch");
 
-// 📦 Ejemplo: pedir tarifa con Basic Auth
-async function getTarifa({ contrato, payload }) {
-  const basicAuth = Buffer.from(`${ANDREANI.user}:${ANDREANI.pass}`).toString('base64');
+async function cotizarEnvio(origen, destino, peso) {
+  try {
+    const response = await fetch(
+      `${process.env.ANDREANI_API_URL}/tarifas?origen=${origen}&destino=${destino}&peso=${peso}`,
+      {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${process.env.ANDREANI_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
 
-  const res = await fetch(`${ANDREANI.baseUrl}/v1/tarifa`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Basic ${basicAuth}`   // 👈 cambio clave
-    },
-    body: JSON.stringify({
-      cliente: ANDREANI.clientCode,
-      contrato,
-      ...payload
-    })
-  });
+    if (!response.ok) {
+      throw new Error(`Error Andreani: ${response.status} ${response.statusText}`);
+    }
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Error tarifa Andreani: ${res.status} ${res.statusText} :: ${text}`);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("❌ Error en cotizarEnvio:", error.message);
+    throw error;
   }
-
-  return res.json();
 }
 
-module.exports = { getTarifa };
+module.exports = { cotizarEnvio };
+
 
 
 
