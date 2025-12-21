@@ -37,7 +37,7 @@ class Server {
       process.env.FRONTEND_URL || "https://react-deporte.netlify.app" // frontend producción
     ];
 
-    // 🔧 Configuración de CORS
+    // 🔧 Configuración de CORS corregida
     this.app.use(
       cors({
         origin: (origin, callback) => {
@@ -45,7 +45,7 @@ class Server {
             callback(null, true);
           } else {
             console.warn("❌ CORS bloqueado para:", origin);
-            callback(null, false);
+            callback(new Error("No permitido por CORS"));
           }
         },
         credentials: true
