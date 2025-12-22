@@ -1,11 +1,12 @@
-// server.js
+require("dotenv").config(); // 🔑 Cargar variables de entorno desde .env
 const express = require("express");
+const mongoose = require("mongoose");
 const cors = require("cors");
 const morgan = require("morgan");
 const fs = require("fs");
 const path = require("path");
 
-// Importar todas las rutas
+// Importar rutas
 const authRoutes = require("./routes/auth");
 const usuariosRoutes = require("./routes/usuarios");
 const productosRoutes = require("./routes/productos");
@@ -31,13 +32,11 @@ class Server {
   }
 
   middlewares() {
-    // 🔧 Lista de orígenes permitidos
     const allowedOrigins = [
-      "http://localhost:5173", // frontend local
-      process.env.FRONTEND_URL || "https://react-deporte.netlify.app" // frontend producción
+      "http://localhost:5173",
+      process.env.FRONTEND_URL || "https://react-deporte.netlify.app"
     ];
 
-    // 🔧 Configuración de CORS corregida
     this.app.use(
       cors({
         origin: (origin, callback) => {
@@ -52,13 +51,9 @@ class Server {
       })
     );
 
-    // 📦 Body parser
     this.app.use(express.json());
-
-    // 📦 Logger
     this.app.use(morgan("dev"));
 
-    // 📦 Logs locales (solo en desarrollo)
     if (process.env.NODE_ENV !== "production") {
       const logDir = path.join(__dirname, "../logs");
       if (!fs.existsSync(logDir)) {
@@ -71,12 +66,10 @@ class Server {
       this.app.use(morgan("combined", { stream: accessLogStream }));
     }
 
-    // 📦 Archivos estáticos
     this.app.use(express.static("public"));
   }
 
   routes() {
-    // Endpoint de prueba para validar deploy en Vercel
     this.app.get("/api/test", (req, res) => {
       res.json({
         ok: true,
@@ -104,5 +97,17 @@ class Server {
   }
 }
 
-module.exports = Server;
+// 🔑 Conexión a MongoDB y arranque del servidor
+mongoose.connect(process.env.MONGODB_CNN, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => {
+  console.log("✅ Conectado a MongoDB Atlas");
+  const server = new Server();
+  server.listen();
+})
+.catch(err => {
+  console.error("❌ Error al conectar a MongoDB:", err);
+});
 
