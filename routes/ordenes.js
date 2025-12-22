@@ -70,7 +70,7 @@ router.post("/checkout", validarJWT, async (req, res) => {
       costoEnvio: ordenGuardada.costoEnvio,
     });
   } catch (error) {
-    console.error("Error en checkout:", error);
+    console.error("❌ Error en checkout:", error);
     res.status(500).json({ error: "Error al iniciar el checkout" });
   }
 });
@@ -104,7 +104,7 @@ router.post("/webhook", async (req, res) => {
 
     res.sendStatus(200);
   } catch (error) {
-    console.error("Error en webhook:", error);
+    console.error("❌ Error en webhook:", error);
     res.sendStatus(500);
   }
 });
@@ -131,8 +131,26 @@ router.delete("/:id", validarJWT, async (req, res) => {
 
     res.json({ ok: true, message: "Orden cancelada correctamente", orden });
   } catch (error) {
-    console.error("Error al cancelar orden:", error);
+    console.error("❌ Error al cancelar orden:", error);
     res.status(500).json({ error: "Error al cancelar orden" });
+  }
+});
+
+// ✅ Filtrar ordenes (ejemplo: por estado o usuario)
+router.get("/filtrar", validarJWT, async (req, res) => {
+  try {
+    const { estado, usuarioId } = req.query;
+
+    const filtro = {};
+    if (estado) filtro.estado = estado;
+    if (usuarioId) filtro.usuario = usuarioId;
+
+    const ordenes = await Orden.find(filtro).sort({ createdAt: -1 });
+
+    res.json({ ok: true, ordenes });
+  } catch (error) {
+    console.error("❌ Error en filtrar ordenes:", error);
+    res.status(500).json({ error: "Error al filtrar ordenes" });
   }
 });
 
