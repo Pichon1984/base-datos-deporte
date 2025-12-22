@@ -1,4 +1,4 @@
-require("dotenv").config(); // 🔑 Cargar variables de entorno desde .env
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -24,17 +24,14 @@ class Server {
     this.app = express();
     this.port = process.env.PORT || 3000;
 
-    // Middlewares
     this.middlewares();
-
-    // Rutas
     this.routes();
   }
 
   middlewares() {
     const allowedOrigins = [
       "http://localhost:5173",
-      process.env.FRONTEND_URL || "https://react-deporte.netlify.app"
+      process.env.FRONTEND_URL || "https://react-deporte.netlify.app",
     ];
 
     this.app.use(
@@ -47,7 +44,7 @@ class Server {
             callback(new Error("No permitido por CORS"));
           }
         },
-        credentials: true
+        credentials: true,
       })
     );
 
@@ -73,7 +70,7 @@ class Server {
     this.app.get("/api/test", (req, res) => {
       res.json({
         ok: true,
-        mensaje: "MongoDB conectado y backend funcionando en Vercel 🚀"
+        mensaje: "MongoDB conectado y backend funcionando en Vercel 🚀",
       });
     });
 
@@ -98,16 +95,21 @@ class Server {
 }
 
 // 🔑 Conexión a MongoDB y arranque del servidor
-mongoose.connect(process.env.MONGODB_CNN, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => {
-  console.log("✅ Conectado a MongoDB Atlas");
-  const server = new Server();
-  server.listen();
-})
-.catch(err => {
-  console.error("❌ Error al conectar a MongoDB:", err);
-});
+mongoose
+  .connect(process.env.MONGODB_CNN, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("✅ Conectado a MongoDB Atlas");
+    const server = new Server();
+    server.listen();
+  })
+  .catch((err) => {
+    console.error("❌ Error al conectar a MongoDB:", err);
+    process.exit(1);
+  });
+
+// Exportar app para Vercel
+module.exports = new Server().app;
 
