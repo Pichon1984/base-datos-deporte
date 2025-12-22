@@ -19,97 +19,93 @@ const enviosRoutes = require("./routes/envios");
 const comprasRoutes = require("./routes/compras");
 const pagosRoutes = require("./routes/pagos");
 
-class Server {
-  constructor() {
-    this.app = express();
-    this.port = process.env.PORT || 3000;
+const app = express();
 
-    this.middlewares();
-    this.routes();
-  }
+// Middlewares
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL || "https://react-deporte.netlify.app",
+];
 
-  middlewares() {
-    const allowedOrigins = [
-      "http://localhost:5173",
-      process.env.FRONTEND_URL || "https://react-deporte.netlify.app",
-    ];
-
-    this.app.use(
-      cors({
-        origin: (origin, callback) => {
-          if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-          } else {
-            console.warn("❌ CORS bloqueado para:", origin);
-            callback(new Error("No permitido por CORS"));
-          }
-        },
-        credentials: true,
-      })
-    );
-
-    this.app.use(express.json());
-    this.app.use(morgan("dev"));
-
-    if (process.env.NODE_ENV !== "production") {
-      const logDir = path.join(__dirname, "../logs");
-      if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn("❌ CORS bloqueado para:", origin);
+        callback(new Error("No permitido por CORS"));
       }
-      const accessLogStream = fs.createWriteStream(
-        path.join(logDir, "access.log"),
-        { flags: "a" }
-      );
-      this.app.use(morgan("combined", { stream: accessLogStream }));
-    }
+    },
+    credentials: true,
+  })
+);
 
-    this.app.use(express.static("public"));
+app.use(express.json());
+app.use(morgan("dev"));
+
+if (process.env.NODE_ENV !== "production") {
+  const logDir = path.join(__dirname, "../logs");
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir);
   }
-
-  routes() {
-    this.app.get("/api/test", (req, res) => {
-      res.json({
-        ok: true,
-        mensaje: "MongoDB conectado y backend funcionando en Vercel 🚀",
-      });
-    });
-
-    this.app.use("/api/auth", authRoutes);
-    this.app.use("/api/usuarios", usuariosRoutes);
-    this.app.use("/api/productos", productosRoutes);
-    this.app.use("/api/categorias", categoriasRoutes);
-    this.app.use("/api/ordenes", ordenesRoutes);
-    this.app.use("/api/carrito", carritoRoutes);
-    this.app.use("/api/consultas", consultasRoutes);
-    this.app.use("/api/cuotas", cuotasRoutes);
-    this.app.use("/api/envios", enviosRoutes);
-    this.app.use("/api/compras", comprasRoutes);
-    this.app.use("/api/pagos", pagosRoutes);
-  }
-
-  listen() {
-    this.app.listen(this.port, () => {
-      console.log(`🚀 Servidor corriendo en puerto ${this.port}`);
-    });
-  }
+  const accessLogStream = fs.createWriteStream(path.join(logDir, "access.log"), {
+    flags: "a",
+  });
+  app.use(morgan("combined", { stream: accessLogStream }));
 }
 
-// 🔑 Conexión a MongoDB y arranque del servidor
+app.use(express.static("public"));
+
+// Rutas
+app.get("/", (req, res) => {
+  res.send("Servidor funcionando 🚀");
+});
+
+app.get("/api/test", (req, res) => {
+  res.json({
+    ok: true,
+    mensaje: "MongoDB conectado y backend funcionando en Vercel 🚀",
+  });
+});
+
+// 🔑 Ruta de diagnóstico para validar conexión y colecciones
+app.get("/api/test-db", async (req, res) => {
+  try {
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    const nombres = collections.map(c => c.name);
+
+    res.json({
+      ok: true,
+      baseDeDatos: mongoose.connection.db.databaseName,
+      colecciones: nombres
+    });
+  } catch (err) {
+    console.error("❌ Error al listar colecciones:", err);
+    res.status(500).json({ ok: false, error: "No se pudo listar colecciones" });
+  }
+});
+
+app.use("/api/auth", authRoutes);
+app.use("/api/usuarios", usuariosRoutes);
+app.use("/api/productos", productosRoutes);
+app.use("/api/categorias", categoriasRoutes);
+app.use("/api/ordenes", ordenesRoutes);
+app.use("/api/carrito", carritoRoutes);
+app.use("/api/consultas", consultasRoutes);
+app.use("/api/cuotas", cuotasRoutes);
+app.use("/api/envios", enviosRoutes);
+app.use("/api/compras", comprasRoutes);
+app.use("/api/pagos", pagosRoutes);
+
+// Conexión a MongoDB
 mongoose
-  .connect(process.env.MONGODB_CNN, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("✅ Conectado a MongoDB Atlas");
-    const server = new Server();
-    server.listen();
-  })
+  .connect(process.env.MONGODB_CNN)
+  .then(() => console.log("✅ Conectado a MongoDB Atlas"))
   .catch((err) => {
     console.error("❌ Error al conectar a MongoDB:", err);
     process.exit(1);
   });
 
-// Exportar app para Vercel
-module.exports = new Server().app;
-
+// Exportar app (sin listen, Vercel maneja el servidor)
+module.exports = app;
