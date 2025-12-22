@@ -7,20 +7,9 @@ const crypto = require("crypto");
 
 const router = Router();
 
-// POST /api/auth/register
+// Registro
 router.post("/register", async (req, res) => {
-  const {
-    nombre,
-    apellido,
-    correo,
-    password,
-    telefono,
-    direccion,
-    provincia,
-    localidad,
-    codigoPostal,
-    dni
-  } = req.body;
+  const { nombre, apellido, correo, password, telefono, direccion, provincia, localidad, codigoPostal, dni } = req.body;
 
   try {
     if (!correo || !password) {
@@ -71,7 +60,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// POST /api/auth/login
+// Login
 router.post("/login", async (req, res) => {
   const { correo, password } = req.body;
 
@@ -112,7 +101,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// GET /api/auth/me
+// Perfil
 router.get("/me", validarJWT, async (req, res) => {
   try {
     res.json({
@@ -128,7 +117,7 @@ router.get("/me", validarJWT, async (req, res) => {
   }
 });
 
-// POST /api/auth/forgot-password
+// Forgot password
 router.post("/forgot-password", async (req, res) => {
   try {
     const { correo } = req.body;
@@ -141,16 +130,12 @@ router.post("/forgot-password", async (req, res) => {
       return res.status(404).json({ msg: "Usuario no encontrado" });
     }
 
-    // Generar token de reset
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
     usuario.resetToken = hashedToken;
     usuario.resetTokenExpire = Date.now() + 3600000; // 1 hora
     await usuario.save();
-
-    // Aquí deberías enviar el resetToken por email
-    // Ejemplo: https://frontend/reset-password?token=${resetToken}
 
     res.json({ msg: "Token de recuperación generado", token: resetToken });
   } catch (error) {
@@ -159,7 +144,7 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-// POST /api/auth/reset-password
+// Reset password
 router.post("/reset-password", async (req, res) => {
   try {
     const { token, newPassword } = req.body;
@@ -193,3 +178,4 @@ router.post("/reset-password", async (req, res) => {
 });
 
 module.exports = router;
+
