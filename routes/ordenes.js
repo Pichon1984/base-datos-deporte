@@ -2,7 +2,6 @@ const express = require("express");
 const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
 const Orden = require("../models/Orden");
 const { validarJWT } = require("../middlewares/validar-jwt");
-const { validarRol } = require("../middlewares/validarRol");
 
 const router = express.Router();
 
@@ -61,6 +60,7 @@ router.post("/checkout", validarJWT, async (req, res) => {
     await ordenGuardada.save();
 
     res.json({
+      ok: true,
       ordenId: ordenGuardada._id,
       preferenceId: response.id,
       checkoutUrl: response.init_point,
@@ -136,18 +136,39 @@ router.delete("/:id", validarJWT, async (req, res) => {
   }
 });
 
-// ✅ Filtrar ordenes (ejemplo: por estado o usuario)
+// ✅ Filtrar órdenes con paginación
 router.get("/filtrar", validarJWT, async (req, res) => {
   try {
-    const { estado, usuarioId } = req.query;
+    const { estado, usuarioId, desde, hasta } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
     const filtro = {};
     if (estado) filtro.estado = estado;
     if (usuarioId) filtro.usuario = usuarioId;
 
-    const ordenes = await Orden.find(filtro).sort({ createdAt: -1 });
+    if (desde || hasta) {
+      const rango = {};
+      if (desde) rango.$gte = new Date(`${desde}T00:00:00.000Z`);
+      if (hasta) rango.$lte = new Date(`${hasta}T23:59:59.999Z`);
+      filtro.createdAt = rango;
+    }
 
-    res.json({ ok: true, ordenes });
+    const [ordenes, total] = await Promise.all([
+      Orden.find(filtro)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Orden.countDocuments(filtro),
+    ]);
+
+    res.json({
+      ok: true,
+      ordenes,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     console.error("❌ Error en filtrar ordenes:", error);
     res.status(500).json({ error: "Error al filtrar ordenes" });
@@ -155,6 +176,3 @@ router.get("/filtrar", validarJWT, async (req, res) => {
 });
 
 module.exports = router;
-
-
-

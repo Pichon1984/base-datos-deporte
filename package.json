@@ -4,12 +4,10 @@
   "description": "ecommerce",
   "license": "MIT",
   "author": "pichon",
-"main": "server.js",
-
-
+  "main": "server.js",
   "scripts": {
     "start": "node index.js",
-  "dev": "nodemon index.js",
+    "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
@@ -25,6 +23,6 @@
     "morgan": "^1.10.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.11"
   }
 }

@@ -23,7 +23,11 @@ const login = async (req, res) => {
 
     const token = await generarJWT(usuario.id);
 
-    res.json({ token, usuario: usuario.toJSON() });
+    // convertir a objeto y eliminar password
+    const obj = usuario.toObject();
+    delete obj.password;
+
+    res.json({ token, usuario: obj });
   } catch (e) {
     console.error(e);
     res.status(500).json({ msg: "Error en login" });
@@ -48,7 +52,10 @@ const registrar = async (req, res) => {
 
     const token = await generarJWT(usuario.id);
 
-    res.status(201).json({ msg: "Usuario registrado", token, usuario: usuario.toJSON() });
+    const obj = usuario.toObject();
+    delete obj.password;
+
+    res.status(201).json({ msg: "Usuario registrado", token, usuario: obj });
   } catch (e) {
     console.error(e);
     res.status(500).json({ msg: "Error al registrar" });
@@ -56,6 +63,4 @@ const registrar = async (req, res) => {
 };
 
 module.exports = { login, registrar };
-
-
 
