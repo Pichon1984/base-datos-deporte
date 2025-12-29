@@ -6,11 +6,12 @@
   "author": "pichon",
   "main": "server.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "cross-env NODE_ENV=development nodemon index.local.js",
+    "start": "cross-env NODE_ENV=production node server.js",
+    "vercel": "cross-env NODE_ENV=production node index.js"
   },
   "dependencies": {
+    "@emailjs/nodejs": "^5.0.2",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.0.0",
     "cors": "^2.8.5",
@@ -24,6 +25,7 @@
     "morgan": "^1.10.0"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "nodemon": "^3.1.11"
   }
 }

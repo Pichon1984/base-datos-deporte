@@ -1,47 +1,51 @@
-const Usuario = require("../models/usuario");
-const emailjs = require("@emailjs/nodejs");
 const crypto = require("crypto");
+const Usuario = require("../models/usuario");
 
 const forgotPassword = async (req, res) => {
   const { correo } = req.body;
 
   try {
-    const usuario = await Usuario.findOne({ correo });
-    if (!usuario) {
-      return res.status(404).json({ msg: "No existe usuario con ese correo" });
+    if (!correo) {
+      return res.status(400).json({ msg: "El correo es obligatorio" });
     }
 
-    // 🔑 Generar token único y temporal
+    const usuario = await Usuario.findOne({ correo });
+    if (!usuario) {
+      return res.status(404).json({ msg: "Usuario no encontrado" });
+    }
+
+    // Generar token aleatorio
     const resetToken = crypto.randomBytes(32).toString("hex");
+
+    // Hashear token para guardar en DB
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
     usuario.resetToken = hashedToken;
     usuario.resetTokenExpire = Date.now() + 3600000; // 1 hora
     await usuario.save();
 
-    // 📧 Parámetros para EmailJS
-    const templateParams = {
-      to_email: correo,
-      to_name: usuario.nombre,
-      reset_link: `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`
-    };
+    // 👉 Validar FRONTEND_URL
+    if (!process.env.FRONTEND_URL) {
+      console.error("❌ FRONTEND_URL no está definido en el .env");
+      return res.status(500).json({ msg: "Error interno: FRONTEND_URL no configurado" });
+    }
 
-    // 👈 Usar las variables con prefijo VITE_
-    await emailjs.send(
-      process.env.VITE_EMAILJS_SERVICE_ID,
-      process.env.VITE_EMAILJS_TEMPLATE_ID_RESET,
-      templateParams,
-      { publicKey: process.env.VITE_EMAILJS_PUBLIC_KEY }
-    );
+    const recoveryLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
 
-    res.json({ msg: "Correo de recuperación enviado" });
+    // 🔍 Logs de depuración
+    console.log("🔍 FRONTEND_URL:", process.env.FRONTEND_URL);
+    console.log("🔑 Enlace de recuperación generado:", recoveryLink);
+
+    // ✅ Devolver token y link al frontend
+    return res.status(200).json({
+      msg: "Token de recuperación generado",
+      token: resetToken,
+      link: recoveryLink,
+    });
   } catch (error) {
     console.error("❌ Error en forgotPassword:", error);
-    res.status(500).json({ msg: "Error en forgot password" });
+    return res.status(500).json({ msg: "Error interno del servidor" });
   }
 };
 
 module.exports = { forgotPassword };
-
-
-

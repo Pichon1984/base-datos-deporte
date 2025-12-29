@@ -1,4 +1,12 @@
-require("dotenv").config();
+const dotenv = require("dotenv");
+const envFile = process.env.NODE_ENV === "production" ? ".env.production" : ".env.development";
+dotenv.config({ path: envFile });
+
+console.log("🔍 Archivo de entorno cargado:", envFile);
+console.log("🔍 FRONTEND_URL:", process.env.FRONTEND_URL);
+
+
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -44,6 +52,7 @@ app.use(
 app.use(express.json());
 app.use(morgan("dev"));
 
+// Logs en desarrollo
 if (process.env.NODE_ENV !== "production") {
   const logDir = path.join(__dirname, "../logs");
   if (!fs.existsSync(logDir)) {
@@ -57,7 +66,7 @@ if (process.env.NODE_ENV !== "production") {
 
 app.use(express.static("public"));
 
-// Rutas
+// Rutas básicas
 app.get("/", (req, res) => {
   res.send("Servidor funcionando 🚀");
 });
@@ -65,20 +74,24 @@ app.get("/", (req, res) => {
 app.get("/api/test", (req, res) => {
   res.json({
     ok: true,
-    mensaje: "MongoDB conectado y backend funcionando en Vercel 🚀",
+    mensaje: "MongoDB conectado y backend funcionando 🚀",
   });
 });
 
-// 🔑 Ruta de diagnóstico para validar conexión y colecciones
+// Ruta de diagnóstico
 app.get("/api/test-db", async (req, res) => {
   try {
+    if (!mongoose.connection.db) {
+      return res.status(500).json({ ok: false, error: "No hay conexión activa a MongoDB" });
+    }
+
     const collections = await mongoose.connection.db.listCollections().toArray();
-    const nombres = collections.map(c => c.name);
+    const nombres = collections.map((c) => c.name);
 
     res.json({
       ok: true,
       baseDeDatos: mongoose.connection.db.databaseName,
-      colecciones: nombres
+      colecciones: nombres,
     });
   } catch (err) {
     console.error("❌ Error al listar colecciones:", err);
@@ -86,6 +99,7 @@ app.get("/api/test-db", async (req, res) => {
   }
 });
 
+// Rutas API
 app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/productos", productosRoutes);
@@ -99,9 +113,18 @@ app.use("/api/compras", comprasRoutes);
 app.use("/api/pagos", pagosRoutes);
 
 // Conexión a MongoDB
+const mongoUri = process.env.MONGODB_CNN;
+if (!mongoUri) {
+  console.error("❌ No se encontró la variable MONGODB_CNN en el archivo:", envFile);
+  process.exit(1);
+}
+
 mongoose
-  .connect(process.env.MONGODB_CNN)
-  .then(() => console.log("✅ Conectado a MongoDB Atlas"))
+  .connect(mongoUri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ Conectado a MongoDB"))
   .catch((err) => {
     console.error("❌ Error al conectar a MongoDB:", err);
     process.exit(1);
