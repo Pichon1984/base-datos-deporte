@@ -26,11 +26,12 @@ const forgotPassword = async (req, res) => {
       reset_link: `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password?token=${resetToken}`
     };
 
+    // 👈 Usar las variables con prefijo VITE_
     await emailjs.send(
-      process.env.EMAILJS_SERVICE_ID,
-      process.env.EMAILJS_TEMPLATE_ID_RESET,
+      process.env.VITE_EMAILJS_SERVICE_ID,
+      process.env.VITE_EMAILJS_TEMPLATE_ID_RESET,
       templateParams,
-      { publicKey: process.env.EMAILJS_PUBLIC_KEY }
+      { publicKey: process.env.VITE_EMAILJS_PUBLIC_KEY }
     );
 
     res.json({ msg: "Correo de recuperación enviado" });
@@ -41,4 +42,6 @@ const forgotPassword = async (req, res) => {
 };
 
 module.exports = { forgotPassword };
+
+
 
