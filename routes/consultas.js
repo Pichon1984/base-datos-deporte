@@ -23,33 +23,62 @@ router.post("/", validarJWT, async (req, res) => {
   }
 });
 
-// Obtener consultas por producto
+// Obtener consultas por producto con paginación
 router.get("/producto/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const consultas = await Consulta.find({ productoId: id })
-      .populate("usuarioId", "nombre email")
-      .sort({ fecha: -1 });
-    res.json(consultas);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const [consultas, total] = await Promise.all([
+      Consulta.find({ productoId: id })
+        .populate("usuarioId", "nombre email")
+        .sort({ fecha: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Consulta.countDocuments({ productoId: id })
+    ]);
+
+    res.json({
+      ok: true,
+      consultas,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (error) {
     console.error("Error obteniendo consultas:", error);
     res.status(500).json({ ok: false, error: "Error interno" });
   }
 });
 
-// Obtener todas las consultas (admin/vendedor)
+// Obtener todas las consultas con paginación (admin/vendedor)
 router.get("/todas", validarJWT, async (req, res) => {
   try {
     if (req.usuario.rol !== "VENDEDOR" && req.usuario.rol !== "ADMIN") {
       return res.status(403).json({ ok: false, error: "No autorizado" });
     }
 
-    const consultas = await Consulta.find()
-      .populate("productoId", "nombre")
-      .populate("usuarioId", "email")
-      .sort({ fecha: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
-    res.json(consultas);
+    const [consultas, total] = await Promise.all([
+      Consulta.find()
+        .populate("productoId", "nombre")
+        .populate("usuarioId", "email")
+        .sort({ fecha: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Consulta.countDocuments()
+    ]);
+
+    res.json({
+      ok: true,
+      consultas,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (error) {
     console.error("Error obteniendo todas las consultas:", error);
     res.status(500).json({ ok: false, error: "Error interno" });
@@ -82,6 +111,3 @@ router.put("/:id/responder", validarJWT, async (req, res) => {
 });
 
 module.exports = router;
-
-
-

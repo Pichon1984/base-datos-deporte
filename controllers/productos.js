@@ -1,30 +1,54 @@
 const Producto = require("../models/producto");
 const Categoria = require("../models/categoria");
 
-// 📌 Obtener productos (con búsqueda y categoría)
+// 📌 Obtener productos (con búsqueda, categoría y paginación)
 const productosGet = async (req, res) => {
   try {
-    const { categoria, search } = req.query;
+    const { categoria, search, page = 1, limit = 12 } = req.query;
     let query = {};
 
+    // Filtrar por categoría (buscando por nombre)
     if (categoria) {
       const cat = await Categoria.findOne({ nombre: categoria.toLowerCase() });
-      if (!cat) return res.json([]);
+      if (!cat) {
+        return res.json({
+          ok: true,
+          productos: [],
+          total: 0,
+          page: parseInt(page),
+          totalPages: 0,
+        });
+      }
       query.categoria = cat._id;
     }
 
+    // Filtrar por nombre (search)
     if (search) {
       query.nombre = { $regex: search, $options: "i" };
     }
 
-    const productos = await Producto.find(query)
-      .populate("usuario", "nombre email")
-      .populate("categoria", "nombre");
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    res.json(Array.isArray(productos) ? productos : []);
+    // Ejecutar consulta con paginación
+    const [productos, total] = await Promise.all([
+      Producto.find(query)
+        .populate("usuario", "nombre email")
+        .populate("categoria", "nombre")
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Producto.countDocuments(query),
+    ]);
+
+    res.json({
+      ok: true,
+      productos,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit)),
+    });
   } catch (error) {
     console.error("Error al obtener productos:", error.message);
-    res.json([]);
+    res.status(500).json({ ok: false, error: "Error interno del servidor" });
   }
 };
 
@@ -56,7 +80,7 @@ const productoPost = async (req, res) => {
       categoria,
       envio,
       cuotas,
-      talles
+      talles,
     } = req.body;
 
     if (!nombre || !precio || !categoria) {
@@ -79,10 +103,10 @@ const productoPost = async (req, res) => {
       envio: {
         costo: envio?.costo || 0,
         tiempo: envio?.tiempo || 3,
-        metodos: envio?.metodos || []
+        metodos: envio?.metodos || [],
       },
       cuotas: cuotas || [],
-      talles: talles || [] // 👈 guardamos talles
+      talles: talles || [],
     });
 
     await producto.save();
@@ -104,7 +128,7 @@ const productoPut = async (req, res) => {
         ...resto,
         ...(envio && { envio }),
         ...(cuotas && { cuotas }),
-        ...(talles && { talles })
+        ...(talles && { talles }),
       },
       { new: true }
     )
@@ -137,6 +161,5 @@ module.exports = {
   productoGet,
   productoPost,
   productoPut,
-  productoDelete
+  productoDelete,
 };
-

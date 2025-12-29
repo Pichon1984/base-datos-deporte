@@ -2,7 +2,7 @@ const Usuario = require("../models/usuario");
 const bcrypt = require("bcryptjs");
 const { generarJWT } = require('../helpers/generar-jwt');
 
-// 🔍 GET todos los usuarios
+// 🔍 GET todos los usuarios con búsqueda + paginación
 const usuariosGet = async (req, res) => {
   const { search = "", page = 1, limit = 10 } = req.query;
 
@@ -23,7 +23,16 @@ const usuariosGet = async (req, res) => {
     Usuario.countDocuments(filtro)
   ]);
 
-  res.json({ total, usuarios });
+  res.json({
+    total,
+    usuarios: usuarios.map(u => {
+      const obj = u.toObject();
+      delete obj.password;
+      return obj;
+    }),
+    totalPages: Math.ceil(total / Number(limit)),
+    currentPage: Number(page)
+  });
 };
 
 // 🔍 GET usuario por ID
@@ -31,7 +40,10 @@ const usuariosGetId = async (req, res) => {
   const { id } = req.params;
   const usuario = await Usuario.findById(id);
   if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
-  res.json(usuario.toJSON());
+
+  const obj = usuario.toObject();
+  delete obj.password;
+  res.json(obj);
 };
 
 // ➕ POST crear usuario
@@ -52,8 +64,11 @@ const usuariosPost = async (req, res) => {
     // generar JWT
     const token = await generarJWT(usuario.id);
 
+    const obj = usuario.toObject();
+    delete obj.password;
+
     res.status(201).json({
-      usuario: usuario.toJSON(),
+      usuario: obj,
       token
     });
   } catch (e) {
@@ -81,7 +96,10 @@ const usuarioPut = async (req, res) => {
 
     await usuario.save();
 
-    res.json(usuario.toJSON());
+    const obj = usuario.toObject();
+    delete obj.password;
+
+    res.json(obj);
   } catch (e) {
     console.error(e);
     res.status(500).json({ msg: "Error al actualizar usuario" });
@@ -92,14 +110,20 @@ const usuarioPut = async (req, res) => {
 const usuarioDelete = async (req, res) => {
   const { id } = req.params;
   const usuario = await Usuario.findByIdAndUpdate(id, { estado: false }, { new: true });
-  res.json(usuario.toJSON());
+  const obj = usuario.toObject();
+  delete obj.password;
+  res.json(obj);
 };
 
 // 👤 GET perfil propio
 const me = async (req, res) => {
   const usuario = await Usuario.findById(req.usuario._id);
   if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
-  res.json(usuario.toJSON());
+
+  const obj = usuario.toObject();
+  delete obj.password;
+
+  res.json(obj);
 };
 
 // 📍 POST guardar ubicación del usuario logueado
@@ -142,4 +166,3 @@ module.exports = {
   me,
   guardarUbicacion
 };
-

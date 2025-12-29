@@ -5,7 +5,7 @@ const {
   productoGet,
   productoPost,
   productoPut,
-  productoDelete
+  productoDelete,
 } = require("../controllers/productos");
 const { validarJWT } = require("../middlewares/validar-jwt");
 const { validarCampos } = require("../middlewares/validarCampos");
@@ -14,21 +14,30 @@ const { validarRol } = require("../middlewares/validarRol");
 
 const router = Router();
 
-// ✅ Listar productos (público, con búsqueda/filtros)
+/**
+ * ✅ Listar productos (público, con búsqueda/filtros/paginación)
+ * GET /api/productos
+ */
 router.get("/", productosGet);
 
-// ✅ Obtener producto por ID (público)
+/**
+ * ✅ Obtener producto por ID (público)
+ * GET /api/productos/:id
+ */
 router.get(
   "/:id",
   [
     check("id", "El ID no es válido").isMongoId(),
     check("id").custom(productoExiste),
-    validarCampos
+    validarCampos,
   ],
   productoGet
 );
 
-// ✅ Crear producto (solo admin)
+/**
+ * ✅ Crear producto (solo ADMIN)
+ * POST /api/productos
+ */
 router.post(
   "/",
   [
@@ -36,14 +45,17 @@ router.post(
     validarRol(["ADMIN"]),
     check("nombre", "El nombre es obligatorio").notEmpty(),
     check("precio", "El precio debe ser un número válido").isNumeric(),
-    check("categoria", "La categoría no es válida").isMongoId(),
+    check("categoria", "La categoría es obligatoria y debe ser un ID válido").isMongoId(),
     check("categoria").custom(categoriaExiste),
-    validarCampos
+    validarCampos,
   ],
   productoPost
 );
 
-// ✅ Actualizar producto (solo admin)
+/**
+ * ✅ Actualizar producto (solo ADMIN)
+ * PUT /api/productos/:id
+ */
 router.put(
   "/:id",
   [
@@ -51,12 +63,15 @@ router.put(
     validarRol(["ADMIN"]),
     check("id", "El ID no es válido").isMongoId(),
     check("id").custom(productoExiste),
-    validarCampos
+    validarCampos,
   ],
   productoPut
 );
 
-// ✅ Eliminar producto (solo admin)
+/**
+ * ✅ Eliminar producto (solo ADMIN)
+ * DELETE /api/productos/:id
+ */
 router.delete(
   "/:id",
   [
@@ -64,10 +79,9 @@ router.delete(
     validarRol(["ADMIN"]),
     check("id", "El ID no es válido").isMongoId(),
     check("id").custom(productoExiste),
-    validarCampos
+    validarCampos,
   ],
   productoDelete
 );
 
 module.exports = router;
-

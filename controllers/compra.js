@@ -2,6 +2,7 @@ const Compra = require('../models/Compra');
 const Producto = require('../models/producto');
 const mongoose = require('mongoose');
 
+// 📌 Crear compra
 const crearCompra = async (req, res) => {
   try {
     const { items } = req.body;
@@ -11,13 +12,11 @@ const crearCompra = async (req, res) => {
     const itemsProcesados = [];
 
     for (const item of items) {
-      // Validar que el ID sea válido
       if (!mongoose.Types.ObjectId.isValid(item.productoId)) {
         return res.status(400).json({ msg: `ID inválido: ${item.productoId}` });
       }
 
       const producto = await Producto.findById(item.productoId);
-
       if (!producto) {
         return res.status(404).json({ msg: `Producto no encontrado: ${item.productoId}` });
       }
@@ -26,7 +25,6 @@ const crearCompra = async (req, res) => {
         return res.status(400).json({ msg: `Stock insuficiente para ${producto.nombre}` });
       }
 
-      // Actualizar stock
       producto.stock -= item.cantidad;
       await producto.save();
 
@@ -37,7 +35,8 @@ const crearCompra = async (req, res) => {
         productoId: producto._id,
         nombre: producto.nombre,
         cantidad: item.cantidad,
-        precioUnitario: producto.precio
+        precioUnitario: producto.precio,
+        talle: item.talle || null
       });
     }
 
@@ -45,7 +44,8 @@ const crearCompra = async (req, res) => {
       clienteId,
       total,
       items: itemsProcesados,
-      fecha: new Date() // aseguramos que se guarde la fecha
+      fecha: new Date(),
+      estado: "pendiente"
     });
 
     await nuevaCompra.save();
@@ -60,28 +60,25 @@ const crearCompra = async (req, res) => {
   }
 };
 
+// 📌 Historial de compras del cliente
 const obtenerHistorial = async (req, res) => {
   try {
-    const clienteId = req.usuario._id; // viene del JWT
+    const clienteId = req.usuario._id;
 
     const compras = await Compra.find({ clienteId })
-      .populate('items.productoId', 'nombre precio') // opcional: mostrar info del producto
-      .sort({ fecha: -1 }); // orden descendente
+      .populate("clienteId", "nombre apellido correo dni telefono direccion provincia localidad codigoPostal")
+      .populate("productos.productoId", "nombre precio")
+      .sort({ fecha: -1 });
 
-    res.json({
-      msg: 'Historial de compras',
-      compras
-    });
+    res.json(compras);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ msg: 'Error al obtener historial' });
+    res.status(500).json({ msg: "Error al obtener historial" });
   }
 };
+
 
 module.exports = {
   crearCompra,
   obtenerHistorial
 };
-
-
-
