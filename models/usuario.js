@@ -1,4 +1,5 @@
 const { Schema, model } = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const UsuarioSchema = new Schema({
   nombre: { type: String, required: true, trim: true },
@@ -13,7 +14,6 @@ const UsuarioSchema = new Schema({
   },
   password: { type: String, required: true },
 
-  // Campos adicionales del formulario
   telefono: { type: String },
   direccion: { type: String },
   provincia: { type: String },
@@ -21,35 +21,39 @@ const UsuarioSchema = new Schema({
   codigoPostal: { type: String },
   dni: { type: String },
 
-  // Rol y estado
   rol: { type: String, enum: ["ADMIN", "CLIENTE"], default: "CLIENTE" },
   estado: { type: Boolean, default: true },
 
-  // Carrito de compras
   carrito: [
     {
       _id: false,
       productoId: { type: Schema.Types.ObjectId, ref: "Producto", required: true },
-      talle: { type: String }, 
+      talle: { type: String },
       cantidad: { type: Number, default: 1, min: 1 }
     }
   ],
 
-  // Ubicación opcional
   ubicacion: {
     ciudad: { type: String },
     provincia: { type: String },
     pais: { type: String },
     lat: { type: Number },
     lon: { type: Number },
-    lastUpdate: { type: Date } // 👈 renombrado para evitar conflicto con timestamps
+    lastUpdate: { type: Date }
   },
 
-  // Recuperación de contraseña
   resetToken: { type: String, default: null },
   resetTokenExpire: { type: Date, default: null }
 
 }, { timestamps: true });
+
+// 👉 Middleware para hashear automáticamente la contraseña
+UsuarioSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
 
 // Ocultar campos sensibles en las respuestas
 UsuarioSchema.methods.toJSON = function () {
@@ -58,4 +62,3 @@ UsuarioSchema.methods.toJSON = function () {
 };
 
 module.exports = model("Usuario", UsuarioSchema);
-

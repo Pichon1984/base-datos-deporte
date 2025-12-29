@@ -10,7 +10,7 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ msg: "Token y nueva contraseña son obligatorios" });
     }
 
-    // Hashear el token recibido para compararlo con el guardado
+    // Hashear el token recibido (si lo guardaste hasheado en DB)
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     // Buscar usuario con token válido y no expirado
@@ -33,10 +33,9 @@ const resetPassword = async (req, res) => {
 
     await usuario.save();
 
-    res.json({ msg: "Contraseña actualizada correctamente" });
-  } catch (error) {
-    console.error("❌ Error en resetPassword:", error);
-    res.status(500).json({ msg: "Error interno del servidor" });
+    return res.status(200).json({ msg: "Contraseña actualizada correctamente" });
+  } catch {
+    return res.status(500).json({ msg: "Error interno del servidor" });
   }
 };
 
