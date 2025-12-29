@@ -2,11 +2,6 @@ const dotenv = require("dotenv");
 const envFile = process.env.NODE_ENV === "production" ? ".env.production" : ".env.development";
 dotenv.config({ path: envFile });
 
-console.log("🔍 Archivo de entorno cargado:", envFile);
-console.log("🔍 FRONTEND_URL:", process.env.FRONTEND_URL);
-
-
-
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -29,25 +24,23 @@ const pagosRoutes = require("./routes/pagos");
 
 const app = express();
 
-// Middlewares
+// --- Middlewares ---
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.FRONTEND_URL || "https://react-deporte.netlify.app",
+  "https://react-deporte.netlify.app"
 ];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn("❌ CORS bloqueado para:", origin);
-        callback(new Error("No permitido por CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("No permitido por CORS"));
+    }
+  },
+  credentials: true,
+}));
+
 
 app.use(express.json());
 app.use(morgan("dev"));
@@ -66,7 +59,7 @@ if (process.env.NODE_ENV !== "production") {
 
 app.use(express.static("public"));
 
-// Rutas básicas
+// --- Rutas básicas ---
 app.get("/", (req, res) => {
   res.send("Servidor funcionando 🚀");
 });
@@ -93,13 +86,12 @@ app.get("/api/test-db", async (req, res) => {
       baseDeDatos: mongoose.connection.db.databaseName,
       colecciones: nombres,
     });
-  } catch (err) {
-    console.error("❌ Error al listar colecciones:", err);
+  } catch {
     res.status(500).json({ ok: false, error: "No se pudo listar colecciones" });
   }
 });
 
-// Rutas API
+// --- Rutas API ---
 app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/productos", productosRoutes);
@@ -112,10 +104,9 @@ app.use("/api/envios", enviosRoutes);
 app.use("/api/compras", comprasRoutes);
 app.use("/api/pagos", pagosRoutes);
 
-// Conexión a MongoDB
+// --- Conexión a MongoDB ---
 const mongoUri = process.env.MONGODB_CNN;
 if (!mongoUri) {
-  console.error("❌ No se encontró la variable MONGODB_CNN en el archivo:", envFile);
   process.exit(1);
 }
 
@@ -124,9 +115,12 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("✅ Conectado a MongoDB"))
-  .catch((err) => {
-    console.error("❌ Error al conectar a MongoDB:", err);
+  .then(() => {
+    if (process.env.NODE_ENV !== "production") {
+      console.log("✅ Conectado a MongoDB");
+    }
+  })
+  .catch(() => {
     process.exit(1);
   });
 
