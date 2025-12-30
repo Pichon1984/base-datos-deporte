@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const fetch = require("node-fetch");
 
 router.get("/", async (req, res) => {
   try {
@@ -10,10 +9,10 @@ router.get("/", async (req, res) => {
       return res.status(400).json({ error: "Faltan parámetros: amount y payment_method_id" });
     }
 
-    // 1. Obtener emisores para la tarjeta
+    // 1. Obtener emisores
     const issuersRes = await fetch(
       `https://api.mercadopago.com/v1/payment_methods/card_issuers?payment_method_id=${payment_method_id}`,
-      { headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` } }
+      { headers: { "x-token": process.env.MP_ACCESS_TOKEN } } // 👈 tu esquema
     );
     const issuers = await issuersRes.json();
 
@@ -21,13 +20,12 @@ router.get("/", async (req, res) => {
       return res.status(400).json({ error: "No se encontraron emisores para este método de pago" });
     }
 
-    // Tomamos el primer emisor como ejemplo
     const issuerId = issuers[0].id;
 
-    // 2. Obtener cuotas reales
+    // 2. Obtener cuotas
     const url = `https://api.mercadopago.com/v1/payment_methods/installments?amount=${amount}&payment_method_id=${payment_method_id}&issuer.id=${issuerId}`;
     const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` }
+      headers: { "x-token": process.env.MP_ACCESS_TOKEN }
     });
 
     if (!response.ok) {
@@ -56,9 +54,3 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
-
-
-
-
-
-

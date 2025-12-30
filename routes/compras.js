@@ -14,7 +14,7 @@ router.post("/", validarJWT, async (req, res) => {
     const { productos } = req.body;
 
     if (!Array.isArray(productos) || productos.length === 0) {
-      return res.status(400).json({ error: "Debe incluir al menos un producto" });
+      return res.status(400).json({ ok: false, error: "Debe incluir al menos un producto" });
     }
 
     let total = 0;
@@ -22,16 +22,16 @@ router.post("/", validarJWT, async (req, res) => {
 
     for (const item of productos) {
       if (!mongoose.Types.ObjectId.isValid(item.productoId)) {
-        return res.status(400).json({ error: `ID inválido: ${item.productoId}` });
+        return res.status(400).json({ ok: false, error: `ID inválido: ${item.productoId}` });
       }
 
       const producto = await Producto.findById(item.productoId);
       if (!producto) {
-        return res.status(404).json({ error: `Producto no encontrado: ${item.productoId}` });
+        return res.status(404).json({ ok: false, error: `Producto no encontrado: ${item.productoId}` });
       }
 
       if (producto.stock < item.cantidad) {
-        return res.status(400).json({ error: `Stock insuficiente para ${producto.nombre}` });
+        return res.status(400).json({ ok: false, error: `Stock insuficiente para ${producto.nombre}` });
       }
 
       // Actualizar stock
@@ -58,10 +58,10 @@ router.post("/", validarJWT, async (req, res) => {
     });
 
     const compraGuardada = await nuevaCompra.save();
-    res.status(201).json({ msg: "Compra realizada con éxito", compra: compraGuardada });
+    res.status(201).json({ ok: true, msg: "Compra realizada con éxito", compra: compraGuardada });
   } catch (error) {
     console.error("Error al crear compra:", error);
-    res.status(500).json({ error: "Error al crear la compra" });
+    res.status(500).json({ ok: false, error: "Error al crear la compra" });
   }
 });
 
@@ -74,10 +74,10 @@ router.get("/mias", validarJWT, async (req, res) => {
       .populate("productos.productoId", "nombre precio")
       .sort({ fecha: -1 });
 
-    res.json(compras);
+    res.json({ ok: true, compras });
   } catch (error) {
     console.error("Error al obtener compras:", error);
-    res.status(500).json({ error: "Error al obtener las compras" });
+    res.status(500).json({ ok: false, error: "Error al obtener las compras" });
   }
 });
 
@@ -87,7 +87,7 @@ router.get("/mias", validarJWT, async (req, res) => {
 router.get("/", validarJWT, async (req, res) => {
   try {
     if (req.usuario.rol !== "ADMIN") {
-      return res.status(403).json({ error: "Acceso denegado" });
+      return res.status(403).json({ ok: false, error: "Acceso denegado" });
     }
 
     const compras = await Compra.find()
@@ -95,10 +95,10 @@ router.get("/", validarJWT, async (req, res) => {
       .populate("usuario", "nombre correo")
       .sort({ fecha: -1 });
 
-    res.json(compras);
+    res.json({ ok: true, compras });
   } catch (error) {
     console.error("Error al obtener todas las compras:", error);
-    res.status(500).json({ error: "Error al obtener todas las compras" });
+    res.status(500).json({ ok: false, error: "Error al obtener todas las compras" });
   }
 });
 
@@ -112,7 +112,7 @@ router.get("/:id", validarJWT, async (req, res) => {
       .populate("usuario", "nombre correo");
 
     if (!compra) {
-      return res.status(404).json({ error: "Compra no encontrada" });
+      return res.status(404).json({ ok: false, error: "Compra no encontrada" });
     }
 
     const compraUsuarioId = compra.usuario._id
@@ -123,13 +123,13 @@ router.get("/:id", validarJWT, async (req, res) => {
       req.usuario.rol !== "ADMIN" &&
       compraUsuarioId !== req.usuario._id.toString()
     ) {
-      return res.status(403).json({ error: "Acceso denegado" });
+      return res.status(403).json({ ok: false, error: "Acceso denegado" });
     }
 
-    res.json(compra);
+    res.json({ ok: true, compra });
   } catch (error) {
     console.error("Error al obtener compra por ID:", error);
-    res.status(500).json({ error: "Error al obtener la compra" });
+    res.status(500).json({ ok: false, error: "Error al obtener la compra" });
   }
 });
 
@@ -139,12 +139,12 @@ router.get("/:id", validarJWT, async (req, res) => {
 router.put("/:id/estado", validarJWT, async (req, res) => {
   try {
     if (req.usuario.rol !== "ADMIN") {
-      return res.status(403).json({ error: "Acceso denegado" });
+      return res.status(403).json({ ok: false, error: "Acceso denegado" });
     }
 
     const { estado } = req.body;
     if (!["pendiente", "pagada", "cancelada"].includes(estado)) {
-      return res.status(400).json({ error: "Estado inválido" });
+      return res.status(400).json({ ok: false, error: "Estado inválido" });
     }
 
     const compra = await Compra.findByIdAndUpdate(
@@ -156,13 +156,13 @@ router.put("/:id/estado", validarJWT, async (req, res) => {
       .populate("usuario", "nombre correo");
 
     if (!compra) {
-      return res.status(404).json({ error: "Compra no encontrada" });
+      return res.status(404).json({ ok: false, error: "Compra no encontrada" });
     }
 
-    res.json({ msg: "Estado actualizado", compra });
+    res.json({ ok: true, msg: "Estado actualizado", compra });
   } catch (error) {
     console.error("Error al actualizar estado de compra:", error);
-    res.status(500).json({ error: "Error al actualizar estado de compra" });
+    res.status(500).json({ ok: false, error: "Error al actualizar estado de compra" });
   }
 });
 

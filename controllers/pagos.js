@@ -28,12 +28,11 @@ const iniciarPago = async (req, res) => {
         pending: `https://react-deporte.netlify.app/checkout/pending/${compra._id}`
       },
       auto_return: "approved",
-      external_reference: compra._id.toString(), // ✅ coma corregida
+      external_reference: compra._id.toString(),
       notification_url: `${process.env.BASE_URL}/api/ordenes/webhook`
     };
 
     const response = await preference.create({ body: pref });
-
     res.json({ init_point: response.init_point });
   } catch (error) {
     console.error("Error iniciando pago:", error);
@@ -42,6 +41,8 @@ const iniciarPago = async (req, res) => {
 };
 
 module.exports = { iniciarPago };
+
+
 
 
 
