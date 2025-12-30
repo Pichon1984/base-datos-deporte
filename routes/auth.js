@@ -150,6 +150,8 @@ router.post("/reset-password", async (req, res) => {
     if (!token || !newPassword) {
       return res.status(400).json({ msg: "Token y nueva contraseña son obligatorios" });
     }
+console.log("📩 Body recibido en reset-password:", req.body);
+
 
     // Validar complejidad de contraseña
     if (!validarPassword(newPassword)) {

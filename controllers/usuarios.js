@@ -4,17 +4,24 @@ const { generarJWT } = require('../helpers/generar-jwt');
 
 // 🔍 GET todos los usuarios con búsqueda + paginación
 const usuariosGet = async (req, res) => {
-  const { search = "", page = 1, limit = 10 } = req.query;
+  const { search = "", page = 1, limit = 10, estado } = req.query;
 
-  const filtro = search
-    ? {
-        $or: [
-          { nombre: { $regex: search, $options: "i" } },
-          { apellido: { $regex: search, $options: "i" } },
-          { correo: { $regex: search, $options: "i" } }
-        ]
-      }
-    : {};
+  // base filter
+  let filtro = {};
+
+  // si viene estado en query, lo agregamos al filtro
+  if (estado !== undefined) {
+    filtro.estado = estado === "true"; // convierte string a boolean
+  }
+
+  // si viene búsqueda, agregamos condiciones
+  if (search) {
+    filtro.$or = [
+      { nombre: { $regex: search, $options: "i" } },
+      { apellido: { $regex: search, $options: "i" } },
+      { correo: { $regex: search, $options: "i" } }
+    ];
+  }
 
   const skip = (Number(page) - 1) * Number(limit);
 
@@ -35,6 +42,7 @@ const usuariosGet = async (req, res) => {
   });
 };
 
+
 // 🔍 GET usuario por ID
 const usuariosGetId = async (req, res) => {
   const { id } = req.params;
@@ -43,7 +51,7 @@ const usuariosGetId = async (req, res) => {
 
   const obj = usuario.toObject();
   delete obj.password;
-  res.json(obj);
+  res.json({ usuario: obj });
 };
 
 // ➕ POST crear usuario
@@ -77,42 +85,38 @@ const usuariosPost = async (req, res) => {
   }
 };
 
-// ✏️ PUT actualizar usuario por ID
+// ✏️ PUT bloquear/desbloquear usuario por ID
 const usuarioPut = async (req, res) => {
   const { id } = req.params;
-  const { nombre, apellido, telefono, direccion, provincia, localidad, codigoPostal, dni } = req.body;
+  const { estado } = req.body; // true = activo, false = bloqueado
   try {
-    const usuario = await Usuario.findById(id);
+    const usuario = await Usuario.findByIdAndUpdate(
+      id,
+      { estado },
+      { new: true }
+    );
     if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
-
-    if (nombre !== undefined) usuario.nombre = nombre;
-    if (apellido !== undefined) usuario.apellido = apellido;
-    if (telefono !== undefined) usuario.telefono = telefono;
-    if (direccion !== undefined) usuario.direccion = direccion;
-    if (provincia !== undefined) usuario.provincia = provincia;
-    if (localidad !== undefined) usuario.localidad = localidad;
-    if (codigoPostal !== undefined) usuario.codigoPostal = codigoPostal;
-    if (dni !== undefined) usuario.dni = dni;
-
-    await usuario.save();
 
     const obj = usuario.toObject();
     delete obj.password;
 
-    res.json(obj);
+    res.json({ usuario: obj });
   } catch (e) {
     console.error(e);
     res.status(500).json({ msg: "Error al actualizar usuario" });
   }
 };
 
-// 🗑️ DELETE lógico
+// 🗑️ DELETE físico
 const usuarioDelete = async (req, res) => {
   const { id } = req.params;
-  const usuario = await Usuario.findByIdAndUpdate(id, { estado: false }, { new: true });
+  const usuario = await Usuario.findByIdAndDelete(id); // borrado físico
+  if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
+
   const obj = usuario.toObject();
   delete obj.password;
-  res.json(obj);
+
+  res.json({ usuario: obj });
 };
 
 // 👤 GET perfil propio
@@ -123,7 +127,7 @@ const me = async (req, res) => {
   const obj = usuario.toObject();
   delete obj.password;
 
-  res.json(obj);
+  res.json({ usuario: obj });
 };
 
 // 📍 POST guardar ubicación del usuario logueado
