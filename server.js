@@ -26,20 +26,23 @@ const app = express();
 
 // --- Middlewares ---
 const allowedOrigins = [
-  "http://localhost:5173",
-  "https://react-deporte.netlify.app"
+  "http://localhost:5173",              // frontend local (Vite)
+  "https://react-deporte.netlify.app"   // frontend en Netlify
 ];
 
 app.use(cors({
-  origin: (origin, callback) => {
+  origin: function (origin, callback) {
+    // Si no hay origin (ej: Postman) o está en la lista, permitir
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error("No permitido por CORS"));
     }
   },
-  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
 }));
+
 
 
 app.use(express.json());
