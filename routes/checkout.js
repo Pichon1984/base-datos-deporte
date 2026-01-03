@@ -53,16 +53,21 @@ router.post('/carrito', validarToken, async (req, res) => {
   }
 });
 
-// ✅ Calcular envío con Andreani
+// ✅ Calcular envío con Andreani (QA usando Basic Auth)
 router.get('/envios/andreani', validarToken, async (req, res) => {
   const { origen, destino, peso } = req.query;
   try {
-    const response = await axios.get('https://api.andreani.com/envios', {
+    const authString = `${process.env.ANDREANI_USER}:${process.env.ANDREANI_PASS}`;
+    const authBase64 = Buffer.from(authString).toString("base64");
+
+    const response = await axios.get(`${process.env.ANDREANI_API_URL}/envios`, {
       params: { origen, destino, peso },
       headers: {
-        Authorization: `Bearer ${process.env.ANDREANI_TOKEN}`
+        Authorization: `Basic ${authBase64}`, // 👈 ahora correcto
+        "x-ibm-client-id": process.env.ANDREANI_CLIENT_CODE
       }
     });
+
     res.json(response.data);
   } catch (err) {
     if (err.response?.status === 403) {
@@ -71,5 +76,6 @@ router.get('/envios/andreani', validarToken, async (req, res) => {
     res.status(500).json({ error: 'Error consultando Andreani' });
   }
 });
+
 
 module.exports = router;

@@ -6,10 +6,10 @@ const mongoose = require('mongoose');
 const crearCompra = async (req, res) => {
   try {
     const { items } = req.body;
-    const clienteId = req.usuario._id;  // viene del JWT
+    const usuarioId = req.usuario._id;  // viene del JWT
 
     let total = 0;
-    const itemsProcesados = [];
+    const productosProcesados = [];
 
     for (const item of items) {
       if (!mongoose.Types.ObjectId.isValid(item.productoId)) {
@@ -31,20 +31,36 @@ const crearCompra = async (req, res) => {
       const subtotal = item.cantidad * producto.precio;
       total += subtotal;
 
-      itemsProcesados.push({
+      productosProcesados.push({
         productoId: producto._id,
         nombre: producto.nombre,
         cantidad: item.cantidad,
-        precioUnitario: producto.precio,
-        talle: item.talle || null
+        precio: producto.precio,   // 👈 coincide con schema
+        talle: item.talle || null,
+        subtotal                  // 👈 agregado para claridad
       });
     }
 
+    // 🚚 Lógica de envío
+    const ENVIO_BASE = 30000;
+    const LIMITE_ENVIO_GRATIS = 200000;
+
+    let costoEnvio = 0;
+    if (total >= LIMITE_ENVIO_GRATIS) {
+      costoEnvio = 0; // envío gratis
+    } else {
+      costoEnvio = ENVIO_BASE;
+      // Si querés proporcional:
+      // let descuento = (total / LIMITE_ENVIO_GRATIS) * ENVIO_BASE;
+      // costoEnvio = Math.max(ENVIO_BASE - descuento, 0);
+    }
+
     const nuevaCompra = new Compra({
-      clienteId,
+      usuario: usuarioId,               // 👈 corregido
+      productos: productosProcesados,   // 👈 coincide con schema
       total,
-      items: itemsProcesados,
-      fecha: new Date(),
+      costoEnvio,
+      totalFinal: total + costoEnvio,
       estado: "pendiente"
     });
 
@@ -60,25 +76,4 @@ const crearCompra = async (req, res) => {
   }
 };
 
-// 📌 Historial de compras del cliente
-const obtenerHistorial = async (req, res) => {
-  try {
-    const clienteId = req.usuario._id;
-
-    const compras = await Compra.find({ clienteId })
-      .populate("clienteId", "nombre apellido correo dni telefono direccion provincia localidad codigoPostal")
-      .populate("productos.productoId", "nombre precio")
-      .sort({ fecha: -1 });
-
-    res.json(compras);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: "Error al obtener historial" });
-  }
-};
-
-
-module.exports = {
-  crearCompra,
-  obtenerHistorial
-};
+module.exports = { crearCompra };

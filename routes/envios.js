@@ -1,46 +1,55 @@
 const express = require("express");
 const router = express.Router();
+const Compra = require("../models/Compra"); // tu modelo de compra
 const fetch = require("node-fetch");
 
-// 📦 Cotización con Andreani
-router.get("/andreani", async (req, res) => {
+// Confirmar compra con envío
+router.post("/compras/confirmar/:id", async (req, res) => {
   try {
-    const { origen, destino, peso } = req.query;
+    const { id } = req.params;
+    const { origen, destino, peso } = req.body; // datos para Andreani
 
-    if (!origen || !destino || !peso) {
-      return res.status(400).json({ error: "Faltan parámetros: origen, destino y peso" });
+    const compra = await Compra.findById(id);
+    if (!compra) {
+      return res.status(404).json({ ok: false, error: "Compra no encontrada" });
     }
 
+    // 👉 Cotizar con Andreani
     const url = `${process.env.ANDREANI_API_URL}/rates`;
-
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.ANDREANI_API_KEY}`, // o Basic Auth si tu contrato lo requiere
-        "Content-Type": "application/json"
+        Authorization: `Bearer ${process.env.ANDREANI_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         originPostalCode: origen,
         destinationPostalCode: destino,
         weight: Number(peso),
-        contract: process.env.ANDREANI_CONTRACT
-      })
+        contract: process.env.ANDREANI_CONTRACT,
+      }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("❌ Error en respuesta de Andreani:", errText);
-      return res.status(response.status).json({ error: errText });
+      console.error("❌ Error en Andreani:", errText);
+      return res.status(response.status).json({ ok: false, error: errText });
     }
 
     const data = await response.json();
-    res.json(data);
+    const costoEnvio = data.total || data.price || 0; // depende de la respuesta Andreani
+
+    // 👉 Guardar costo de envío en la compra
+    compra.costoEnvio = costoEnvio;
+    compra.totalFinal = compra.subtotalProductos + costoEnvio;
+    compra.estadoEnvio = "pendiente"; // inicial
+    await compra.save();
+
+    res.json({ ok: true, compra });
   } catch (error) {
-    console.error("❌ Error obteniendo cotización Andreani:", error);
-    res.status(500).json({ error: error.message });
+    console.error("❌ Error confirmando compra:", error);
+    res.status(500).json({ ok: false, error: error.message });
   }
 });
 
 module.exports = router;
-
-
