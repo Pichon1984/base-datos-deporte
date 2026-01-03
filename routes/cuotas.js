@@ -12,7 +12,11 @@ router.get("/", async (req, res) => {
     // 1. Obtener emisores
     const issuersRes = await fetch(
       `https://api.mercadopago.com/v1/payment_methods/card_issuers?payment_method_id=${payment_method_id}`,
-      { headers: { "x-token": process.env.MP_ACCESS_TOKEN } } // 👈 tu esquema
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`, // ✅ CORRECTO
+        },
+      }
     );
     const issuers = await issuersRes.json();
 
@@ -25,7 +29,9 @@ router.get("/", async (req, res) => {
     // 2. Obtener cuotas
     const url = `https://api.mercadopago.com/v1/payment_methods/installments?amount=${amount}&payment_method_id=${payment_method_id}&issuer.id=${issuerId}`;
     const response = await fetch(url, {
-      headers: { "x-token": process.env.MP_ACCESS_TOKEN }
+      headers: {
+        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`, // ✅ CORRECTO
+      },
     });
 
     if (!response.ok) {
@@ -36,14 +42,14 @@ router.get("/", async (req, res) => {
 
     const data = await response.json();
 
-    const resultado = (data || []).map(item => ({
+    const resultado = (data || []).map((item) => ({
       issuer: item.issuer?.name || payment_method_id,
-      payer_costs: item.payer_costs.map(pc => ({
+      payer_costs: item.payer_costs.map((pc) => ({
         recommended_message: pc.recommended_message,
         installments: pc.installments,
         installment_amount: pc.installment_amount,
-        total_amount: pc.total_amount
-      }))
+        total_amount: pc.total_amount,
+      })),
     }));
 
     res.json(resultado);
@@ -54,3 +60,4 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
+

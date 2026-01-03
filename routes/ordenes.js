@@ -19,44 +19,64 @@ router.post("/checkout", validarJWT, async (req, res) => {
       return res.status(400).json({ error: "Datos de envío incompletos" });
     }
 
+    // 🛒 Subtotal
     const subtotal = productos.reduce((acc, p) => acc + p.precio * p.cantidad, 0);
-    const costoEnvioTotal = productos.reduce((acc, p) => acc + (p.costoEnvio || 0), 0);
-    const total = subtotal + costoEnvioTotal;
 
+    // 🚚 Cálculo envío
+    const ENVIO_BASE = 30000;
+    const LIMITE_ENVIO_GRATIS = 200000;
+    let costoEnvio = 0;
+    if (subtotal < LIMITE_ENVIO_GRATIS) {
+      const descuento = (subtotal / LIMITE_ENVIO_GRATIS) * ENVIO_BASE;
+      costoEnvio = Math.max(ENVIO_BASE - descuento, 0);
+    }
+
+    const totalFinal = subtotal + costoEnvio;
+
+    // 📌 Crear orden
     const nuevaOrden = new Orden({
-      envio,
-      productos,
-      costoEnvio: costoEnvioTotal,
-      total,
       usuario: req.usuario._id,
+      productos,
+      envio,
+      costoEnvio,
+      total: subtotal,
+      totalFinal,
       estado: "pendiente",
       estadoEnvio: "pendiente",
+      mercadoPago: {}
     });
+
     const ordenGuardada = await nuevaOrden.save();
 
+    // 👀 Log de URLs
+    console.log("Success URL:", "http://localhost:5173/checkout/success");
+    console.log("Failure URL:", "http://localhost:5173/checkout/failure");
+    console.log("Pending URL:", "http://localhost:5173/checkout/pending");
+
+    // 📌 Crear preferencia MercadoPago SIN auto_return
     const preference = new Preference(mpClient);
     const response = await preference.create({
       body: {
-        items: productos.map(p => ({
+        items: productos.map((p) => ({
           title: p.nombre,
           unit_price: p.precio,
           quantity: p.cantidad,
         })),
         payer: { name: envio.nombre, email: envio.email },
         back_urls: {
-          success: `${process.env.FRONTEND_URL}/checkout/success/${ordenGuardada._id}`,
-          failure: `${process.env.FRONTEND_URL}/checkout/failure/${ordenGuardada._id}`,
-          pending: `${process.env.FRONTEND_URL}/checkout/pending/${ordenGuardada._id}`,
+          success: "http://localhost:5173/checkout/success",
+          failure: "http://localhost:5173/checkout/failure",
+          pending: "http://localhost:5173/checkout/pending",
         },
-        auto_return: "approved",
+        // ❌ auto_return deshabilitado en local
         external_reference: ordenGuardada._id.toString(),
         notification_url: `${process.env.BASE_URL}/api/ordenes/webhook`,
       },
     });
 
     ordenGuardada.external_reference = ordenGuardada._id.toString();
-    ordenGuardada.mp_preference_id = response.id;
-    ordenGuardada.mp_init_point = response.init_point;
+    ordenGuardada.mercadoPago.preference_id = response.id;
+    ordenGuardada.mercadoPago.init_point = response.init_point;
     await ordenGuardada.save();
 
     res.json({
@@ -68,6 +88,7 @@ router.post("/checkout", validarJWT, async (req, res) => {
       estadoEnvio: ordenGuardada.estadoEnvio,
       total: ordenGuardada.total,
       costoEnvio: ordenGuardada.costoEnvio,
+      totalFinal: ordenGuardada.totalFinal,
     });
   } catch (error) {
     console.error("❌ Error en checkout:", error);
@@ -75,64 +96,82 @@ router.post("/checkout", validarJWT, async (req, res) => {
   }
 });
 
+
 // ✅ Webhook de MercadoPago
 router.post("/webhook", async (req, res) => {
   try {
     const { type, data } = req.body;
 
-    if (type === "payment" && data?.id) {
-      const paymentClient = new Payment(mpClient);
-      const payment = await paymentClient.get({ id: data.id });
+    // MercadoPago envía el payment_id
+    if (type === "payment" && data && data.id) {
+      const paymentId = data.id;
 
-      const ordenId = payment.external_reference;
-      const status = payment.status;
+      // Consultar el pago en MercadoPago
+      const payment = await mpClient.payment.get(paymentId);
+      const info = payment.body; // 👈 la data real está en .body
 
-      const orden = await Orden.findById(ordenId);
-      if (orden) {
-        orden.mp_payment_id = String(payment.id);
-        orden.mp_status = payment.status;
-        orden.mp_status_detail = payment.status_detail;
-        orden.estado =
-          status === "approved"
-            ? "pagado"
-            : status === "rejected"
-            ? "cancelado"
-            : "pendiente";
+      console.log("🔔 Webhook recibido:", info);
+
+      // Buscar la orden por external_reference
+      const orden = await Orden.findById(info.external_reference);
+      if (!orden) {
+        console.warn("⚠️ Orden no encontrada:", info.external_reference);
+        return res.sendStatus(404);
+      }
+
+      // Actualizar estado según pago
+      if (info.status === "approved") {
+        orden.estado = "pagada";
         await orden.save();
+
+        await Compra.findOneAndUpdate(
+          { ordenId: orden._id },
+          { estado: "pagada" }
+        );
+      } else if (info.status === "rejected") {
+        orden.estado = "cancelada";
+        await orden.save();
+
+        await Compra.findOneAndUpdate(
+          { ordenId: orden._id },
+          { estado: "cancelada" }
+        );
       }
     }
 
-    res.sendStatus(200);
+    res.sendStatus(200); // 👈 siempre responder 200 para evitar reintentos infinitos
   } catch (error) {
     console.error("❌ Error en webhook:", error);
     res.sendStatus(500);
   }
 });
 
-// ✅ Cancelar orden (Admin o Cliente dueño)
+
+
+// ✅ Cancelar orden
 router.delete("/:id", validarJWT, async (req, res) => {
   try {
     const { id } = req.params;
     const orden = await Orden.findById(id);
 
     if (!orden) {
-      return res.status(404).json({ error: "Orden no encontrada" });
+      return res.status(404).json({ ok: false, error: "Orden no encontrada" });
     }
 
     if (
       orden.usuario.toString() !== req.usuario._id.toString() &&
       req.usuario.rol !== "ADMIN"
     ) {
-      return res.status(403).json({ error: "No autorizado para cancelar esta orden" });
+      return res.status(403).json({ ok: false, error: "No autorizado para cancelar esta orden" });
     }
 
-    orden.estado = "cancelado";
+    orden.estado = "cancelada";
     await orden.save();
 
     res.json({ ok: true, message: "Orden cancelada correctamente", orden });
   } catch (error) {
     console.error("❌ Error al cancelar orden:", error);
-    res.status(500).json({ error: "Error al cancelar orden" });
+    res.status(500).json({ ok: false, error: "Error al cancelar orden" });
   }
 });
 
@@ -171,7 +210,34 @@ router.get("/filtrar", validarJWT, async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error en filtrar ordenes:", error);
-    res.status(500).json({ error: "Error al filtrar ordenes" });
+    res.status(500).json({ ok: false, error: "Error al filtrar ordenes" });
+  }
+});
+
+// ✅ Obtener una orden por ID
+router.get("/:id", validarJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const orden = await Orden.findById(id)
+      .populate("usuario", "nombre apellido correo")
+      .populate("productos.productoId", "nombre precio");
+
+    if (!orden) {
+      return res.status(404).json({ ok: false, error: "Orden no encontrada" });
+    }
+
+    if (
+      orden.usuario.toString() !== req.usuario._id.toString() &&
+      req.usuario.rol !== "ADMIN"
+    ) {
+      return res.status(403).json({ ok: false, error: "No autorizado para ver esta orden" });
+    }
+
+    res.json({ ok: true, orden });
+  } catch (error) {
+    console.error("❌ Error al obtener orden:", error);
+    res.status(500).json({ ok: false, error: "Error al obtener orden" });
   }
 });
 

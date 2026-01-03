@@ -1,63 +1,63 @@
-const { Schema, model } = require("mongoose");
+const mongoose = require("mongoose");
 
-const OrdenSchema = new Schema(
+const ProductoSchema = new mongoose.Schema(
   {
-    usuario: { type: Schema.Types.ObjectId, ref: "Usuario", required: true },
-
-    productos: [
-      {
-        productoId: { type: Schema.Types.ObjectId, ref: "Producto", required: true },
-        nombre: { type: String, required: true },
-        precio: { type: Number, required: true },
-        cantidad: { type: Number, required: true },
-        talle: { type: String },
-        envio: { type: String }, // método de envío elegido (ej: "Correo Argentino")
-      },
-    ],
-
-    envio: {
-      nombre: { type: String },
-      email: { type: String },
-      direccion: { type: String, required: true },
-      localidad: { type: String, required: true },
-      provincia: { type: String, required: true },
-      codigoPostal: { type: String },
-      telefono: { type: String },
-      pais: { type: String },
-    },
-
-    costoEnvio: { type: Number, default: 0 }, // costo total de envío
-    total: { type: Number, required: true },
-
-    // Estado de la orden (pago)
-    estado: {
-      type: String,
-      enum: ["pendiente", "pagado", "cancelado"],
-      default: "pendiente",
-    },
-
-    // Estado del envío (gestión logística)
-    estadoEnvio: {
-      type: String,
-      enum: ["pendiente", "preparando", "enviado", "entregado"],
-      default: "pendiente",
-    },
-
-    // Datos de MercadoPago
-    mp_preference_id: { type: String },
-    mp_init_point: { type: String },
-    mp_payment_id: { type: String },
-    mp_status: { type: String },
-    mp_status_detail: { type: String },
-    external_reference: { type: String },
-
-    fecha: { type: Date, default: Date.now },
+    productoId: { type: mongoose.Schema.Types.ObjectId, ref: "Producto", required: true },
+    nombre: { type: String, required: true },
+    precio: { type: Number, required: true },
+    cantidad: { type: Number, required: true },
+    talle: { type: String },
+    subtotal: { type: Number }
   },
-  {
-    timestamps: true, // agrega createdAt y updatedAt automáticamente
-    strict: true, // evita guardar campos no definidos en el schema
-  }
+  { _id: false }
 );
 
-module.exports = model("Orden", OrdenSchema);
+const OrdenSchema = new mongoose.Schema(
+  {
+    usuario: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario", required: true },
+
+    productos: [ProductoSchema],
+
+    envio: {
+      nombre: { type: String, required: true },
+      email: { type: String, required: true },
+      direccion: { type: String },
+      telefono: { type: String }
+    },
+
+    estado: {
+      type: String,
+      enum: ["pendiente", "pagada", "cancelada"],
+      default: "pendiente"
+    },
+
+    estadoEnvio: {
+      type: String,
+      enum: ["pendiente", "enviado", "entregado"],
+      default: "pendiente"
+    },
+
+    total: { type: Number, required: true },       // subtotal productos
+    costoEnvio: { type: Number, required: true },  // costo de envío
+    totalFinal: { type: Number, required: true },  // total con envío
+
+    mercadoPago: {
+      preference_id: { type: String, default: null },
+      init_point: { type: String, default: null },
+      payment_id: { type: String, default: null },
+      status: { type: String, default: null },
+      status_detail: { type: String, default: null }
+    },
+
+    external_reference: { type: String, default: null },
+
+    fechaEnvio: { type: Date },
+    fechaEntrega: { type: Date }
+  },
+  { timestamps: true }
+);
+
+// ✅ Exportación segura para evitar OverwriteModelError
+module.exports = mongoose.models.Orden || mongoose.model("Orden", OrdenSchema);
+
 
