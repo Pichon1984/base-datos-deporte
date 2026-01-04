@@ -7,19 +7,23 @@ const productosGet = async (req, res) => {
     const { categoria, search, page = 1, limit = 12 } = req.query;
     let query = {};
 
-    // Filtrar por categoría (buscando por nombre case-insensitive)
+    // Filtrar por categoría (acepta nombre o _id)
     if (categoria) {
-      const cat = await Categoria.findOne({ nombre: new RegExp(`^${categoria}$`, "i") });
-      if (!cat) {
-        return res.json({
-          ok: true,
-          productos: [],
-          total: 0,
-          page: parseInt(page),
-          totalPages: 0,
-        });
+      if (/^[0-9a-fA-F]{24}$/.test(categoria)) {
+        query.categoria = categoria;
+      } else {
+        const cat = await Categoria.findOne({ nombre: new RegExp(`^${categoria}$`, "i") });
+        if (!cat) {
+          return res.json({
+            ok: true,
+            productos: [],
+            total: 0,
+            page: parseInt(page),
+            totalPages: 0,
+          });
+        }
+        query.categoria = cat._id;
       }
-      query.categoria = cat._id;
     }
 
     // Filtrar por nombre (search)
@@ -29,7 +33,6 @@ const productosGet = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Ejecutar consulta con paginación
     const [productos, total] = await Promise.all([
       Producto.find(query)
         .populate("usuario", "nombre email")
@@ -77,7 +80,7 @@ const productoPost = async (req, res) => {
       descripcion,
       imagenes,
       stock,
-      categoria, // puede venir como nombre (string)
+      categoria, // puede venir como nombre o _id
       envio,
       cuotas,
       talles,
@@ -87,19 +90,22 @@ const productoPost = async (req, res) => {
       return res.status(400).json({ error: "Nombre, precio y categoría son obligatorios" });
     }
 
-    // Buscar categoría por nombre (case-insensitive)
-    const existeCategoria = await Categoria.findOne({ nombre: new RegExp(`^${categoria}$`, "i") });
-    if (!existeCategoria) {
-      return res.status(400).json({ error: "Categoría no válida" });
+    let categoriaId = categoria;
+    if (!/^[0-9a-fA-F]{24}$/.test(categoria)) {
+      const existeCategoria = await Categoria.findOne({ nombre: new RegExp(`^${categoria}$`, "i") });
+      if (!existeCategoria) {
+        return res.status(400).json({ error: "Categoría no válida" });
+      }
+      categoriaId = existeCategoria._id;
     }
 
     const producto = new Producto({
       nombre,
-      precio,
+      precio: Number(precio), // asegurar número
       descripcion,
       imagenes,
       stock,
-      categoria: existeCategoria._id, // 👈 guardamos el ObjectId
+      categoria: categoriaId,
       usuario: req.usuario._id,
       envio: {
         costo: envio?.costo || 0,
@@ -125,17 +131,22 @@ const productoPut = async (req, res) => {
 
     let categoriaId = null;
     if (categoria) {
-      const existeCategoria = await Categoria.findOne({ nombre: new RegExp(`^${categoria}$`, "i") });
-      if (!existeCategoria) {
-        return res.status(400).json({ error: "Categoría no válida" });
+      if (/^[0-9a-fA-F]{24}$/.test(categoria)) {
+        categoriaId = categoria;
+      } else {
+        const existeCategoria = await Categoria.findOne({ nombre: new RegExp(`^${categoria}$`, "i") });
+        if (!existeCategoria) {
+          return res.status(400).json({ error: "Categoría no válida" });
+        }
+        categoriaId = existeCategoria._id;
       }
-      categoriaId = existeCategoria._id;
     }
 
     const producto = await Producto.findByIdAndUpdate(
       req.params.id,
       {
         ...resto,
+        precio: resto.precio ? Number(resto.precio) : undefined,
         ...(envio && { envio }),
         ...(cuotas && { cuotas }),
         ...(talles && { talles }),
@@ -172,6 +183,5 @@ module.exports = {
   productoGet,
   productoPost,
   productoPut,
-
   productoDelete,
 };
