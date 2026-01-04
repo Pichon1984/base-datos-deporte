@@ -29,15 +29,17 @@ router.post("/crear/:compraId", async (req, res) => {
 
     const items = compra.productos.map(p => ({
       title: p.nombre,
-      unit_price: Number(p.precio),
+      unit_price: Math.round(Number(p.precio) * 100), // 👈 convertir a centavos
       quantity: Number(p.cantidad),
+      currency_id: "ARS",
     }));
 
     if (compra.costoEnvio > 0) {
       items.push({
         title: "Costo de envío",
-        unit_price: Number(compra.costoEnvio),
+        unit_price: Math.round(Number(compra.costoEnvio) * 100), // 👈 centavos
         quantity: 1,
+        currency_id: "ARS",
       });
     }
 
@@ -49,7 +51,7 @@ router.post("/crear/:compraId", async (req, res) => {
     });
 
     // 👉 devolvemos solo lo que necesita el Brick
-    res.json({ ok: true, id: result.id, amount: compra.totalFinal });
+    res.json({ ok: true, id: result.body.id, amount: Math.round(compra.totalFinal * 100) });
   } catch (error) {
     console.error("❌ Error creando preferencia:", error);
     res.status(500).json({ ok: false, error: error.message });
@@ -67,7 +69,7 @@ router.post("/procesar", async (req, res) => {
 
     const payment = await paymentClient.create({
       body: {
-        transaction_amount: amount,
+        transaction_amount: Math.round(Number(amount)), // 👈 debe ser entero
         token: cardFormData.token,
         installments: cardFormData.installments,
         payment_method_id: cardFormData.paymentMethodId,
@@ -174,4 +176,3 @@ router.post("/webhook", async (req, res) => {
 });
 
 module.exports = router;
-

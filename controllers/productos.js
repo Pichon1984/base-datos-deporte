@@ -7,9 +7,9 @@ const productosGet = async (req, res) => {
     const { categoria, search, page = 1, limit = 12 } = req.query;
     let query = {};
 
-    // Filtrar por categoría (buscando por nombre)
+    // Filtrar por categoría (buscando por nombre case-insensitive)
     if (categoria) {
-      const cat = await Categoria.findOne({ nombre: categoria.toLowerCase() });
+      const cat = await Categoria.findOne({ nombre: new RegExp(`^${categoria}$`, "i") });
       if (!cat) {
         return res.json({
           ok: true,
@@ -77,7 +77,7 @@ const productoPost = async (req, res) => {
       descripcion,
       imagenes,
       stock,
-      categoria,
+      categoria, // puede venir como nombre (string)
       envio,
       cuotas,
       talles,
@@ -87,7 +87,8 @@ const productoPost = async (req, res) => {
       return res.status(400).json({ error: "Nombre, precio y categoría son obligatorios" });
     }
 
-    const existeCategoria = await Categoria.findById(categoria);
+    // Buscar categoría por nombre (case-insensitive)
+    const existeCategoria = await Categoria.findOne({ nombre: new RegExp(`^${categoria}$`, "i") });
     if (!existeCategoria) {
       return res.status(400).json({ error: "Categoría no válida" });
     }
@@ -98,7 +99,7 @@ const productoPost = async (req, res) => {
       descripcion,
       imagenes,
       stock,
-      categoria,
+      categoria: existeCategoria._id, // 👈 guardamos el ObjectId
       usuario: req.usuario._id,
       envio: {
         costo: envio?.costo || 0,
@@ -120,7 +121,16 @@ const productoPost = async (req, res) => {
 // 📌 Actualizar producto
 const productoPut = async (req, res) => {
   try {
-    const { envio, cuotas, talles, ...resto } = req.body;
+    const { envio, cuotas, talles, categoria, ...resto } = req.body;
+
+    let categoriaId = null;
+    if (categoria) {
+      const existeCategoria = await Categoria.findOne({ nombre: new RegExp(`^${categoria}$`, "i") });
+      if (!existeCategoria) {
+        return res.status(400).json({ error: "Categoría no válida" });
+      }
+      categoriaId = existeCategoria._id;
+    }
 
     const producto = await Producto.findByIdAndUpdate(
       req.params.id,
@@ -129,6 +139,7 @@ const productoPut = async (req, res) => {
         ...(envio && { envio }),
         ...(cuotas && { cuotas }),
         ...(talles && { talles }),
+        ...(categoriaId && { categoria: categoriaId }),
       },
       { new: true }
     )
@@ -161,5 +172,6 @@ module.exports = {
   productoGet,
   productoPost,
   productoPut,
+
   productoDelete,
 };
