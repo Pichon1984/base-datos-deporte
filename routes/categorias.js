@@ -1,4 +1,5 @@
 const { Router } = require("express");
+const mongoose = require("mongoose");
 const Categoria = require("../models/categoria");
 const Producto = require("../models/producto");
 const { validarJWT } = require("../middlewares/validar-jwt");
@@ -8,7 +9,6 @@ const router = Router();
 // ✅ Listar todas las categorías
 router.get("/", async (req, res) => {
   try {
-    // devolvemos siempre _id y nombre
     const categorias = await Categoria.find({ estado: true }).select("nombre _id");
     res.json({ categorias });
   } catch (error) {
@@ -22,7 +22,7 @@ router.get("/id/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!id || id === "undefined") {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ msg: "ID de categoría inválido" });
     }
 
@@ -43,7 +43,7 @@ router.get("/id/:id/productos", async (req, res) => {
     const { id } = req.params;
     const { page = 1, limit = 12 } = req.query;
 
-    if (!id || id === "undefined") {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ msg: "ID de categoría inválido" });
     }
 
@@ -52,10 +52,10 @@ router.get("/id/:id/productos", async (req, res) => {
       return res.status(404).json({ msg: "Categoría no encontrada" });
     }
 
-    const query = { categoria: id, activo: true };
+    const query = { categoria: new mongoose.Types.ObjectId(id), activo: true };
 
     const productos = await Producto.find(query)
-      .populate("categoria", "nombre _id") // 👈 devolvemos nombre y _id
+      .populate("categoria", "nombre _id")
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
@@ -108,7 +108,7 @@ router.put("/:id", validarJWT, async (req, res) => {
     const { id } = req.params;
     const { nombre } = req.body;
 
-    if (!id || id === "undefined") {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ msg: "ID de categoría inválido" });
     }
 
@@ -137,7 +137,7 @@ router.delete("/:id", validarJWT, async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!id || id === "undefined") {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ msg: "ID de categoría inválido" });
     }
 
