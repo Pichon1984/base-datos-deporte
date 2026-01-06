@@ -8,7 +8,8 @@ const router = Router();
 // ✅ Listar todas las categorías
 router.get("/", async (req, res) => {
   try {
-    const categorias = await Categoria.find({ estado: true });
+    // devolvemos siempre _id y nombre
+    const categorias = await Categoria.find({ estado: true }).select("nombre _id");
     res.json({ categorias });
   } catch (error) {
     console.error("❌ Error al obtener categorías:", error.message);
@@ -25,7 +26,7 @@ router.get("/id/:id", async (req, res) => {
       return res.status(400).json({ msg: "ID de categoría inválido" });
     }
 
-    const categoria = await Categoria.findById(id);
+    const categoria = await Categoria.findById(id).select("nombre _id");
     if (!categoria) {
       return res.status(404).json({ msg: "Categoría no encontrada" });
     }
@@ -46,7 +47,7 @@ router.get("/id/:id/productos", async (req, res) => {
       return res.status(400).json({ msg: "ID de categoría inválido" });
     }
 
-    const categoria = await Categoria.findById(id);
+    const categoria = await Categoria.findById(id).select("nombre _id");
     if (!categoria) {
       return res.status(404).json({ msg: "Categoría no encontrada" });
     }
@@ -54,7 +55,7 @@ router.get("/id/:id/productos", async (req, res) => {
     const query = { categoria: id, activo: true };
 
     const productos = await Producto.find(query)
-      .populate("categoria", "nombre")
+      .populate("categoria", "nombre _id") // 👈 devolvemos nombre y _id
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
@@ -67,41 +68,6 @@ router.get("/id/:id/productos", async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error al obtener productos de categoría:", error.message);
-    res.status(500).json({ msg: "Error interno al obtener productos de categoría" });
-  }
-});
-
-// ✅ Obtener productos de una categoría por NOMBRE
-router.get("/nombre/:nombre/productos", async (req, res) => {
-  try {
-    const { nombre } = req.params;
-    const { page = 1, limit = 12 } = req.query;
-
-    if (!nombre || nombre === "undefined") {
-      return res.status(400).json({ msg: "Nombre de categoría inválido" });
-    }
-
-    const categoria = await Categoria.findOne({ nombre: nombre.toLowerCase() });
-    if (!categoria) {
-      return res.status(404).json({ msg: "Categoría no encontrada" });
-    }
-
-    const query = { categoria: categoria._id, activo: true };
-
-    const productos = await Producto.find(query)
-      .populate("categoria", "nombre")
-      .skip((page - 1) * limit)
-      .limit(Number(limit));
-
-    const total = await Producto.countDocuments(query);
-
-    res.json({
-      productos,
-      page: Number(page),
-      totalPages: Math.ceil(total / limit),
-    });
-  } catch (error) {
-    console.error("❌ Error al obtener productos de categoría por nombre:", error.message);
     res.status(500).json({ msg: "Error interno al obtener productos de categoría" });
   }
 });
@@ -150,7 +116,7 @@ router.put("/:id", validarJWT, async (req, res) => {
       id,
       { nombre: nombre.toLowerCase() },
       { new: true }
-    );
+    ).select("nombre _id");
 
     if (!categoria) {
       return res.status(404).json({ msg: "Categoría no encontrada" });
@@ -175,7 +141,7 @@ router.delete("/:id", validarJWT, async (req, res) => {
       return res.status(400).json({ msg: "ID de categoría inválido" });
     }
 
-    const categoria = await Categoria.findByIdAndDelete(id);
+    const categoria = await Categoria.findByIdAndDelete(id).select("nombre _id");
     if (!categoria) {
       return res.status(404).json({ msg: "Categoría no encontrada" });
     }
