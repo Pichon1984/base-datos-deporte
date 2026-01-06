@@ -1,11 +1,12 @@
-const { Router } = require('express');
-const Categoria = require('../models/categoria');
-const { validarJWT } = require('../middlewares/validar-jwt');
+const { Router } = require("express");
+const Categoria = require("../models/categoria");
+const Producto = require("../models/producto");
+const { validarJWT } = require("../middlewares/validar-jwt");
 
 const router = Router();
 
 // ✅ Listar todas las categorías
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const categorias = await Categoria.find({ estado: true });
     res.json({ categorias });
@@ -15,10 +16,16 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ Obtener categoría por ID
-router.get('/:id', async (req, res) => {
+// ✅ Obtener categoría por ID (ObjectId)
+router.get("/id/:id", async (req, res) => {
   try {
-    const categoria = await Categoria.findById(req.params.id);
+    const { id } = req.params;
+
+    if (!id || id === "undefined") {
+      return res.status(400).json({ msg: "ID de categoría inválido" });
+    }
+
+    const categoria = await Categoria.findById(id);
     if (!categoria) {
       return res.status(404).json({ msg: "Categoría no encontrada" });
     }
@@ -29,8 +36,78 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ✅ Crear categoría (requiere token válido)
-router.post('/', validarJWT, async (req, res) => {
+// ✅ Obtener productos de una categoría por ID (ObjectId)
+router.get("/id/:id/productos", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 12 } = req.query;
+
+    if (!id || id === "undefined") {
+      return res.status(400).json({ msg: "ID de categoría inválido" });
+    }
+
+    const categoria = await Categoria.findById(id);
+    if (!categoria) {
+      return res.status(404).json({ msg: "Categoría no encontrada" });
+    }
+
+    const query = { categoria: id, activo: true };
+
+    const productos = await Producto.find(query)
+      .populate("categoria", "nombre")
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const total = await Producto.countDocuments(query);
+
+    res.json({
+      productos,
+      page: Number(page),
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    console.error("❌ Error al obtener productos de categoría:", error.message);
+    res.status(500).json({ msg: "Error interno al obtener productos de categoría" });
+  }
+});
+
+// ✅ Obtener productos de una categoría por NOMBRE
+router.get("/nombre/:nombre/productos", async (req, res) => {
+  try {
+    const { nombre } = req.params;
+    const { page = 1, limit = 12 } = req.query;
+
+    if (!nombre || nombre === "undefined") {
+      return res.status(400).json({ msg: "Nombre de categoría inválido" });
+    }
+
+    const categoria = await Categoria.findOne({ nombre: nombre.toLowerCase() });
+    if (!categoria) {
+      return res.status(404).json({ msg: "Categoría no encontrada" });
+    }
+
+    const query = { categoria: categoria._id, activo: true };
+
+    const productos = await Producto.find(query)
+      .populate("categoria", "nombre")
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const total = await Producto.countDocuments(query);
+
+    res.json({
+      productos,
+      page: Number(page),
+      totalPages: Math.ceil(total / limit),
+    });
+  } catch (error) {
+    console.error("❌ Error al obtener productos de categoría por nombre:", error.message);
+    res.status(500).json({ msg: "Error interno al obtener productos de categoría" });
+  }
+});
+
+// ✅ Crear categoría
+router.post("/", validarJWT, async (req, res) => {
   try {
     const { nombre } = req.body;
     if (!nombre) {
@@ -44,14 +121,14 @@ router.post('/', validarJWT, async (req, res) => {
 
     const categoria = new Categoria({
       nombre: nombre.toLowerCase(),
-      usuario: req.usuario._id
+      usuario: req.usuario._id,
     });
 
     await categoria.save();
 
     res.status(201).json({
       msg: "Categoría creada correctamente",
-      categoria
+      categoria,
     });
   } catch (error) {
     console.error("❌ Error al crear categoría:", error.message);
@@ -60,11 +137,17 @@ router.post('/', validarJWT, async (req, res) => {
 });
 
 // ✅ Actualizar categoría
-router.put('/:id', validarJWT, async (req, res) => {
+router.put("/:id", validarJWT, async (req, res) => {
   try {
+    const { id } = req.params;
     const { nombre } = req.body;
+
+    if (!id || id === "undefined") {
+      return res.status(400).json({ msg: "ID de categoría inválido" });
+    }
+
     const categoria = await Categoria.findByIdAndUpdate(
-      req.params.id,
+      id,
       { nombre: nombre.toLowerCase() },
       { new: true }
     );
@@ -75,7 +158,7 @@ router.put('/:id', validarJWT, async (req, res) => {
 
     res.json({
       msg: "Categoría actualizada correctamente",
-      categoria
+      categoria,
     });
   } catch (error) {
     console.error("❌ Error al actualizar categoría:", error.message);
@@ -84,9 +167,15 @@ router.put('/:id', validarJWT, async (req, res) => {
 });
 
 // ✅ Eliminar categoría
-router.delete('/:id', validarJWT, async (req, res) => {
+router.delete("/:id", validarJWT, async (req, res) => {
   try {
-    const categoria = await Categoria.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+
+    if (!id || id === "undefined") {
+      return res.status(400).json({ msg: "ID de categoría inválido" });
+    }
+
+    const categoria = await Categoria.findByIdAndDelete(id);
     if (!categoria) {
       return res.status(404).json({ msg: "Categoría no encontrada" });
     }
@@ -98,6 +187,3 @@ router.delete('/:id', validarJWT, async (req, res) => {
 });
 
 module.exports = router;
-
-
-
