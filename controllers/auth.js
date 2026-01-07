@@ -21,9 +21,8 @@ const login = async (req, res) => {
       return res.status(400).json({ msg: "Correo/contraseña incorrectos" });
     }
 
-    const token = await generarJWT(usuario.id);
+    const token = await generarJWT(usuario._id); // ✅ corregido
 
-    // convertir a objeto y eliminar password
     const obj = usuario.toObject();
     delete obj.password;
 
@@ -50,7 +49,7 @@ const registrar = async (req, res) => {
     const usuario = new Usuario({ nombre, apellido, correo, password: hashedPassword });
     await usuario.save();
 
-    const token = await generarJWT(usuario.id);
+    const token = await generarJWT(usuario._id); // ✅ corregido
 
     const obj = usuario.toObject();
     delete obj.password;
@@ -63,4 +62,3 @@ const registrar = async (req, res) => {
 };
 
 module.exports = { login, registrar };
-

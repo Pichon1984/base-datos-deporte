@@ -6,7 +6,7 @@ const Producto = require("../models/producto");
 
 // Configuración MercadoPago con token privado
 const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
+  accessToken: process.env.MP_ACCESS_TOKEN, // 👈 unificado
 });
 
 /**
@@ -29,7 +29,7 @@ router.post("/crear/:compraId", async (req, res) => {
 
     const items = compra.productos.map(p => ({
       title: p.nombre,
-      unit_price: Math.round(Number(p.precio) * 100), // 👈 convertir a centavos
+      unit_price: Number(p.precio), // 👈 en pesos
       quantity: Number(p.cantidad),
       currency_id: "ARS",
     }));
@@ -37,7 +37,7 @@ router.post("/crear/:compraId", async (req, res) => {
     if (compra.costoEnvio > 0) {
       items.push({
         title: "Costo de envío",
-        unit_price: Math.round(Number(compra.costoEnvio) * 100), // 👈 centavos
+        unit_price: Number(compra.costoEnvio), // 👈 en pesos
         quantity: 1,
         currency_id: "ARS",
       });
@@ -50,8 +50,14 @@ router.post("/crear/:compraId", async (req, res) => {
       },
     });
 
-    // 👉 devolvemos solo lo que necesita el Brick
-    res.json({ ok: true, id: result.body.id, amount: Math.round(compra.totalFinal * 100) });
+    // 👉 devolvemos lo que necesita el Brick
+    res.json({
+      ok: true,
+      id: result.id,
+      init_point: result.init_point,
+      sandbox_init_point: result.sandbox_init_point,
+      amount: compra.totalFinal,
+    });
   } catch (error) {
     console.error("❌ Error creando preferencia:", error);
     res.status(500).json({ ok: false, error: error.message });
@@ -69,7 +75,7 @@ router.post("/procesar", async (req, res) => {
 
     const payment = await paymentClient.create({
       body: {
-        transaction_amount: Math.round(Number(amount)), // 👈 debe ser entero
+        transaction_amount: Number(amount), // 👈 en pesos
         token: cardFormData.token,
         installments: cardFormData.installments,
         payment_method_id: cardFormData.paymentMethodId,
@@ -90,7 +96,7 @@ router.post("/procesar", async (req, res) => {
       return res.status(404).json({ ok: false, error: "Compra no encontrada" });
     }
 
-    const estado = payment.body.status;
+    const estado = payment.status;
 
     if (estado === "approved") {
       compra.estado = "pagada";
@@ -100,13 +106,13 @@ router.post("/procesar", async (req, res) => {
       compra.estado = "pendiente";
     }
 
-    compra.paymentId = payment.body.id;
+    compra.paymentId = payment.id;
     compra.paymentStatus = estado;
     compra.pagoEventos = compra.pagoEventos || [];
     compra.pagoEventos.push({
       status: estado,
       fecha: new Date(),
-      paymentId: payment.body.id,
+      paymentId: payment.id,
     });
 
     await compra.save();
@@ -133,8 +139,8 @@ router.post("/webhook", async (req, res) => {
     const paymentClient = new Payment(client);
     const payment = await paymentClient.get({ id: data.id });
 
-    const estado = payment.body.status;
-    const compraId = payment.body.external_reference;
+    const estado = payment.status;
+    const compraId = payment.external_reference;
 
     const compra = await Compra.findById(compraId);
     if (!compra) {
@@ -157,13 +163,13 @@ router.post("/webhook", async (req, res) => {
       compra.estado = "reembolsada";
     }
 
-    compra.paymentId = payment.body.id;
+    compra.paymentId = payment.id;
     compra.paymentStatus = estado;
     compra.pagoEventos = compra.pagoEventos || [];
     compra.pagoEventos.push({
       status: estado,
       fecha: new Date(),
-      paymentId: payment.body.id,
+      paymentId: payment.id,
     });
 
     await compra.save();

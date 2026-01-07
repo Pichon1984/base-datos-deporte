@@ -1,4 +1,4 @@
-const { Router } = require("express"); // 👈 Import correcto
+const { Router } = require("express");
 const {
   usuariosGet,
   usuariosGetId,
@@ -6,7 +6,7 @@ const {
   usuarioDelete,
   usuarioPut,
   guardarUbicacion,
-  me // si querés usar el controlador me directamente
+  me
 } = require("../controllers/usuarios");
 const { validarJWT } = require("../middlewares/validar-jwt");
 const { validarRol } = require("../middlewares/validarRol");
@@ -91,3 +91,5 @@ router.delete("/:id", [
 router.post("/ubicacion", [validarJWT], guardarUbicacion);
 
 module.exports = router;
+
+
