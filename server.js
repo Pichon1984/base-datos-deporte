@@ -2,7 +2,6 @@ const dotenv = require("dotenv");
 // En producción (Vercel) basta con dotenv.config() y variables definidas en el dashboard
 dotenv.config({ path: ".env.development" });
 
-
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -37,12 +36,17 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.warn("❌ Origen no permitido por CORS:", origin);
       callback(new Error("No permitido por CORS"));
     }
   },
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // ✅ incluir OPTIONS
+  allowedHeaders: ["Content-Type", "Authorization", "x-token"], // ✅ headers que usás
   credentials: true
 }));
+
+// Manejo explícito de preflight
+app.options("*", cors());
 
 app.use(express.json());
 app.use(morgan("dev"));
