@@ -52,7 +52,14 @@ router.get("/id/:id/productos", async (req, res) => {
       return res.status(404).json({ msg: "Categoría no encontrada" });
     }
 
-    const query = { categoria: new mongoose.Types.ObjectId(id), activo: true };
+    // 👇 aceptar tanto ObjectId como string
+    const query = {
+      $or: [
+        { categoria: new mongoose.Types.ObjectId(id) },
+        { categoria: id }
+      ],
+      activo: true
+    };
 
     const productos = await Producto.find(query)
       .populate("categoria", "nombre _id")
