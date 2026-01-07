@@ -16,5 +16,3 @@ const CategoriaSchema = new Schema({
 module.exports = model("Categoria", CategoriaSchema);
 
 
-
-

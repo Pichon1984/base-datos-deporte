@@ -18,7 +18,7 @@ router.get("/", async (req, res) => {
 });
 
 // ✅ Obtener categoría por ID (ObjectId)
-router.get("/id/:id", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -38,7 +38,7 @@ router.get("/id/:id", async (req, res) => {
 });
 
 // ✅ Obtener productos de una categoría por ID (ObjectId)
-router.get("/id/:id/productos", async (req, res) => {
+router.get("/:id/productos", async (req, res) => {
   try {
     const { id } = req.params;
     const { page = 1, limit = 12 } = req.query;
@@ -52,14 +52,8 @@ router.get("/id/:id/productos", async (req, res) => {
       return res.status(404).json({ msg: "Categoría no encontrada" });
     }
 
-    // 👇 aceptar tanto ObjectId como string
-    const query = {
-      $or: [
-        { categoria: new mongoose.Types.ObjectId(id) },
-        { categoria: id }
-      ],
-      activo: true
-    };
+    // ✅ Consulta directa usando ObjectId
+    const query = { categoria: id, activo: true };
 
     const productos = await Producto.find(query)
       .populate("categoria", "nombre _id")
@@ -160,3 +154,4 @@ router.delete("/:id", validarJWT, async (req, res) => {
 });
 
 module.exports = router;
+
