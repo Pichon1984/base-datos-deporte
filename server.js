@@ -1,6 +1,7 @@
 const dotenv = require("dotenv");
-const envFile = process.env.NODE_ENV === "production" ? ".env.production" : ".env.development";
-dotenv.config({ path: envFile });
+// En producción (Vercel) basta con dotenv.config() y variables definidas en el dashboard
+dotenv.config({ path: ".env.development" });
+
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -27,12 +28,12 @@ const app = express();
 // --- Middlewares ---
 const allowedOrigins = [
   "http://localhost:5173",              // frontend local (Vite)
-  "https://react-deporte.netlify.app"   // frontend en Netlify
+  "https://react-deporte.netlify.app", // frontend en Netlify
+  "https://base-datos-deporte.vercel.app" // frontend en Vercel
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Si no hay origin (ej: Postman) o está en la lista, permitir
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -42,8 +43,6 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
-
-
 
 app.use(express.json());
 app.use(morgan("dev"));
@@ -74,16 +73,13 @@ app.get("/api/test", (req, res) => {
   });
 });
 
-// Ruta de diagnóstico
 app.get("/api/test-db", async (req, res) => {
   try {
     if (!mongoose.connection.db) {
       return res.status(500).json({ ok: false, error: "No hay conexión activa a MongoDB" });
     }
-
     const collections = await mongoose.connection.db.listCollections().toArray();
     const nombres = collections.map((c) => c.name);
-
     res.json({
       ok: true,
       baseDeDatos: mongoose.connection.db.databaseName,
@@ -110,6 +106,7 @@ app.use("/api/pagos", pagosRoutes);
 // --- Conexión a MongoDB ---
 const mongoUri = process.env.MONGODB_CNN;
 if (!mongoUri) {
+  console.error("❌ No se encontró MONGODB_CNN en variables de entorno");
   process.exit(1);
 }
 
@@ -123,7 +120,8 @@ mongoose
       console.log("✅ Conectado a MongoDB");
     }
   })
-  .catch(() => {
+  .catch((err) => {
+    console.error("❌ Error al conectar a MongoDB:", err.message);
     process.exit(1);
   });
 
