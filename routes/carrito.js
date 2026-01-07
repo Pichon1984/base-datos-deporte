@@ -4,7 +4,9 @@ const Usuario = require("../models/usuario");
 
 const router = Router();
 
-// GET /api/carrito → obtener carrito del usuario logueado
+/**
+ * ✅ GET /api/carrito → obtener carrito del usuario logueado
+ */
 router.get("/", validarJWT, async (req, res) => {
   try {
     const usuario = await Usuario.findById(req.usuario._id).populate("carrito.productoId");
@@ -13,12 +15,14 @@ router.get("/", validarJWT, async (req, res) => {
     }
     res.json(usuario.carrito || []);
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error al obtener carrito:", error);
     res.status(500).json({ error: "Error al obtener carrito" });
   }
 });
 
-// POST /api/carrito → agregar producto al carrito
+/**
+ * ✅ POST /api/carrito → agregar producto al carrito
+ */
 router.post("/", validarJWT, async (req, res) => {
   const { productoId, talle, cantidad } = req.body;
   try {
@@ -31,7 +35,7 @@ router.post("/", validarJWT, async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    // Buscar si ya existe ese producto+talle (si talle aplica)
+    // Buscar si ya existe ese producto+talle
     const idx = usuario.carrito.findIndex(
       i =>
         i.productoId.toString() === productoId.toString() &&
@@ -49,12 +53,14 @@ router.post("/", validarJWT, async (req, res) => {
 
     res.json(usuario.carrito);
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error al agregar producto:", error);
     res.status(500).json({ error: "Error al agregar producto" });
   }
 });
 
-// PUT /api/carrito/:productoId → actualizar cantidad
+/**
+ * ✅ PUT /api/carrito/:productoId → actualizar cantidad
+ */
 router.put("/:productoId", validarJWT, async (req, res) => {
   const { productoId } = req.params;
   const { talle, cantidad } = req.body;
@@ -88,12 +94,14 @@ router.put("/:productoId", validarJWT, async (req, res) => {
 
     res.json(usuario.carrito);
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error al actualizar producto:", error);
     res.status(500).json({ error: "Error al actualizar producto" });
   }
 });
 
-// DELETE /api/carrito/:productoId → eliminar producto
+/**
+ * ✅ DELETE /api/carrito/:productoId → eliminar producto específico
+ */
 router.delete("/:productoId", validarJWT, async (req, res) => {
   const { productoId } = req.params;
   const { talle } = req.query;
@@ -121,12 +129,14 @@ router.delete("/:productoId", validarJWT, async (req, res) => {
 
     res.json(usuario.carrito);
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error al eliminar producto:", error);
     res.status(500).json({ error: "Error al eliminar producto" });
   }
 });
 
-// DELETE /api/carrito → vaciar carrito
+/**
+ * ✅ DELETE /api/carrito → vaciar carrito completo
+ */
 router.delete("/", validarJWT, async (req, res) => {
   try {
     const usuario = await Usuario.findById(req.usuario._id);
@@ -139,11 +149,9 @@ router.delete("/", validarJWT, async (req, res) => {
 
     res.json([]);
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error al vaciar carrito:", error);
     res.status(500).json({ error: "Error al vaciar carrito" });
   }
 });
 
 module.exports = router;
-
-

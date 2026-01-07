@@ -79,11 +79,10 @@ const productoPost = async (req, res) => {
       precio,
       descripcion,
       imagenes,
-      stock,
       categoria, // puede venir como nombre o _id
       envio,
       cuotas,
-      talles,
+      tallesUnidades,
     } = req.body;
 
     if (!nombre || !precio || !categoria) {
@@ -101,10 +100,9 @@ const productoPost = async (req, res) => {
 
     const producto = new Producto({
       nombre,
-      precio: Number(precio), // asegurar número
+      precio: Number(parseFloat(precio).toFixed(2)),
       descripcion,
       imagenes,
-      stock,
       categoria: categoriaId,
       usuario: req.usuario._id,
       envio: {
@@ -113,7 +111,10 @@ const productoPost = async (req, res) => {
         metodos: envio?.metodos || [],
       },
       cuotas: cuotas || [],
-      talles: talles || [],
+      tallesUnidades: (tallesUnidades || []).map(tu => ({
+        talle: (tu.talle || "").trim(),
+        stock: Number(tu.stock) || 0,
+      })),
     });
 
     await producto.save();
@@ -127,7 +128,7 @@ const productoPost = async (req, res) => {
 // 📌 Actualizar producto
 const productoPut = async (req, res) => {
   try {
-    const { envio, cuotas, talles, categoria, ...resto } = req.body;
+    const { envio, cuotas, tallesUnidades, categoria, ...resto } = req.body;
 
     let categoriaId = null;
     if (categoria) {
@@ -142,17 +143,30 @@ const productoPut = async (req, res) => {
       }
     }
 
+    // Normalizar precio
+    if (resto.precio) {
+      resto.precio = Number(parseFloat(resto.precio).toFixed(2));
+    }
+
+    // Normalizar tallesUnidades
+    let tallesUnidadesNormalizadas = null;
+    if (tallesUnidades && Array.isArray(tallesUnidades)) {
+      tallesUnidadesNormalizadas = tallesUnidades.map(tu => ({
+        talle: (tu.talle || "").trim(),
+        stock: Number(tu.stock) || 0,
+      }));
+    }
+
     const producto = await Producto.findByIdAndUpdate(
       req.params.id,
       {
         ...resto,
-        precio: resto.precio ? Number(resto.precio) : undefined,
         ...(envio && { envio }),
         ...(cuotas && { cuotas }),
-        ...(talles && { talles }),
+        ...(tallesUnidadesNormalizadas && { tallesUnidades: tallesUnidadesNormalizadas }),
         ...(categoriaId && { categoria: categoriaId }),
       },
-      { new: true }
+      { new: true, runValidators: true }
     )
       .populate("usuario", "nombre email")
       .populate("categoria", "nombre");
