@@ -9,16 +9,16 @@ const compraSchema = new mongoose.Schema(
       {
         productoId: { type: mongoose.Schema.Types.ObjectId, ref: "Producto", required: true },
         nombre: String,
-        precio: Number,
-        cantidad: Number,
+        precio: { type: Number, required: true },
+        cantidad: { type: Number, required: true },
         talle: String,
         subtotal: Number,
       },
     ],
 
-    total: { type: Number, required: true },
+    total: { type: Number, required: true, default: 0 },
     costoEnvio: { type: Number, required: true, default: 0 },
-    totalFinal: { type: Number, required: true },
+    totalFinal: { type: Number, required: true, default: 0 },
 
     estado: {
       type: String,
@@ -38,44 +38,82 @@ const compraSchema = new mongoose.Schema(
     fechaEnvio: { type: Date, default: null },
     fechaEntrega: { type: Date, default: null },
 
-    // 📌 Historial de eventos de envío
     envioEventos: [
       {
-        status: { type: String }, // ej. "EN_CAMINO", "ENTREGADO"
+        status: { type: String },
         fecha: { type: Date, default: Date.now },
-        origen: { type: String }, // opcional: sucursal/origen
-        destino: { type: String }, // opcional: CP destino
+        origen: { type: String },
+        destino: { type: String },
       },
     ],
 
-    // 📌 Información de pago
-    paymentId: { type: String, default: null }, // ID de MercadoPago
-    paymentStatus: { type: String, default: null }, // Estado actual del pago
+    paymentId: { type: String, default: null },
+    paymentStatus: { type: String, default: null },
 
-    // 📌 Historial de eventos de pago
     pagoEventos: [
       {
-        status: { type: String }, // ej. "approved", "rejected", "refunded"
+        status: { type: String },
         fecha: { type: Date, default: Date.now },
-        paymentId: { type: String }, // ID del pago en MercadoPago
+        paymentId: { type: String },
       },
     ],
   },
   { timestamps: true }
 );
 
-// 🔑 Middleware para calcular subtotal y totalFinal automáticamente
+// 🔑 Middleware para calcular subtotal y totalFinal automáticamente con dos decimales
 compraSchema.pre("save", function (next) {
-  this.total = this.productos.reduce((acc, item) => {
-    const subtotalItem = item.subtotal || item.precio * item.cantidad;
-    item.subtotal = subtotalItem;
-    return acc + subtotalItem;
-  }, 0);
+  if (Array.isArray(this.productos) && this.productos.length > 0) {
+    this.total = this.productos.reduce((acc, item) => {
+      // normalizamos precio
+      if (Number.isFinite(item.precio)) {
+        item.precio = Number(parseFloat(item.precio).toFixed(2));
+      }
 
-  this.totalFinal = this.total + (this.costoEnvio || 0);
+      // calculamos subtotal
+      const subtotalItem = item.subtotal || item.precio * item.cantidad;
+      item.subtotal = Number(parseFloat(subtotalItem).toFixed(2));
+
+      return acc + item.subtotal;
+    }, 0);
+  } else {
+    this.total = 0;
+  }
+
+  // normalizamos total y costo de envío
+  this.total = Number(parseFloat(this.total).toFixed(2));
+  this.costoEnvio = Number.isFinite(this.costoEnvio)
+    ? Number(parseFloat(this.costoEnvio).toFixed(2))
+    : 0;
+
+  // calculamos totalFinal
+  this.totalFinal = Number(parseFloat(this.total + this.costoEnvio).toFixed(2));
+
+  next();
+});
+
+// 🔑 Middleware para recalcular en findOneAndUpdate
+compraSchema.pre("findOneAndUpdate", function (next) {
+  const update = this.getUpdate();
+
+  if (update.productos && Array.isArray(update.productos)) {
+    let total = update.productos.reduce((acc, item) => {
+      if (Number.isFinite(item.precio)) {
+        item.precio = Number(parseFloat(item.precio).toFixed(2));
+      }
+      const subtotalItem = item.subtotal || item.precio * item.cantidad;
+      item.subtotal = Number(parseFloat(subtotalItem).toFixed(2));
+      return acc + item.subtotal;
+    }, 0);
+
+    update.total = Number(parseFloat(total).toFixed(2));
+    update.costoEnvio = Number.isFinite(update.costoEnvio)
+      ? Number(parseFloat(update.costoEnvio).toFixed(2))
+      : 0;
+    update.totalFinal = Number(parseFloat(update.total + update.costoEnvio).toFixed(2));
+  }
+
   next();
 });
 
 module.exports = mongoose.models.Compra || mongoose.model("Compra", compraSchema);
-
-

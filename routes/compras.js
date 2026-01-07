@@ -2,7 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Compra = require("../models/Compra");
 const Producto = require("../models/producto");
-const Orden = require("../models/Orden"); // 👈 si tenés el modelo de Orden
+const Orden = require("../models/orden"); // 👈 si tenés el modelo de Orden
 const { validarJWT } = require("../middlewares/validar-jwt");
 const { calcularCostoEnvio } = require("../helpers/envio");
 
@@ -41,7 +41,13 @@ router.post("/", validarJWT, async (req, res) => {
         return res.status(404).json({ ok: false, error: `Producto no encontrado: ${item.productoId}` });
       }
 
-      if (producto.stock < item.cantidad) {
+      // ✅ Validar stock por talle si corresponde
+      if (item.talle) {
+        const talleObj = producto.tallesUnidades.find(t => t.talle === item.talle);
+        if (!talleObj || talleObj.stock < item.cantidad) {
+          return res.status(400).json({ ok: false, error: `Stock insuficiente para talle ${item.talle} en ${producto.nombre}` });
+        }
+      } else if (producto.stock < item.cantidad) {
         return res.status(400).json({ ok: false, error: `Stock insuficiente para ${producto.nombre}` });
       }
 
@@ -114,13 +120,12 @@ router.get("/mias", validarJWT, async (req, res) => {
     res.status(500).json({ ok: false, error: "Error al obtener las compras" });
   }
 });
-
 /**
  * 📌 Obtener todas las compras (solo ADMIN) con filtros y paginación
  */
 router.get("/", validarJWT, async (req, res) => {
   try {
-    if (req.usuario.rol !== "ADMIN") {
+    if (req.usuario.rol.toUpperCase() !== "ADMIN") {
       return res.status(403).json({ ok: false, error: "Acceso denegado" });
     }
 
@@ -168,7 +173,7 @@ router.get("/:id/envio", validarJWT, async (req, res) => {
 
     const compraUsuarioId = compra.usuario._id ? compra.usuario._id.toString() : compra.usuario.toString();
 
-    if (req.usuario.rol !== "ADMIN" && compraUsuarioId !== req.usuario._id.toString()) {
+    if (req.usuario.rol.toUpperCase() !== "ADMIN" && compraUsuarioId !== req.usuario._id.toString()) {
       return res.status(403).json({ ok: false, error: "Acceso denegado" });
     }
 
@@ -212,7 +217,6 @@ router.get("/:id", validarJWT, async (req, res) => {
     res.status(500).json({ ok: false, error: "Error al obtener la compra" });
   }
 });
-
 /**
  * 📌 Actualizar estado de envío y tracking (solo ADMIN, con Andreani)
  */
@@ -351,3 +355,4 @@ router.post("/andreani/webhook", async (req, res) => {
 });
 
 module.exports = router;
+
