@@ -33,6 +33,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
+    // Permitir llamadas internas (sin origin) y tus frontends
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -40,15 +41,18 @@ app.use(cors({
       callback(new Error("No permitido por CORS"));
     }
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // ✅ incluir OPTIONS
-  allowedHeaders: ["Content-Type", "Authorization", "x-token"], // ✅ headers que usás
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-token"],
   credentials: true
 }));
 
 // Manejo explícito de preflight
-app.options("*", cors());
+app.options("*", cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 
-app.use(express.json());
+app.use(express.json()); // 👈 importante para que req.body no sea undefined
 app.use(morgan("dev"));
 
 // Logs en desarrollo
@@ -131,3 +135,11 @@ mongoose
 
 // Exportar app (sin listen, Vercel maneja el servidor)
 module.exports = app;
+
+// 👇 En local, levantar servidor automáticamente
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor local en http://localhost:${PORT}`);
+  });
+}
