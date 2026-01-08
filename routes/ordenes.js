@@ -1,6 +1,6 @@
 const express = require("express");
 const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
-const Orden = require("../models/Orden");
+const Orden = require("../models/orden");
 const { validarJWT } = require("../middlewares/validar-jwt");
 
 const router = express.Router();

@@ -58,6 +58,6 @@ const OrdenSchema = new mongoose.Schema(
 );
 
 // ✅ Exportación segura para evitar OverwriteModelError
-module.exports = mongoose.models.Orden || mongoose.model("Orden", OrdenSchema);
+module.exports = mongoose.models.orden || mongoose.model("orden", OrdenSchema);
 
 

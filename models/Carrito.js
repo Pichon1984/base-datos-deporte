@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 
 const itemSchema = new mongoose.Schema({
   productoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Producto', required: true },
-  nombre: { type: String }, // snapshot opcional
-  precio: { type: Number, required: true }, // snapshot del precio
+  nombre: { type: String }, 
+  precio: { type: Number, required: true }, 
   talle: { type: String, default: null },
   cantidad: { type: Number, required: true, min: 1 }
 }, { _id: false });
