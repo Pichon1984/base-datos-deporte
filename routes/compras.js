@@ -1,6 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const Compra = require("../models/Compra");
+const Compra = require("../models/compra");
 const Producto = require("../models/producto");
 const Orden = require("../models/orden"); // 👈 si tenés el modelo de Orden
 const { validarJWT } = require("../middlewares/validar-jwt");
