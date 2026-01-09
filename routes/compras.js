@@ -2,7 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Compra = require("../models/compra");
 const Producto = require("../models/producto");
-const Orden = require("../models/orden"); // 👈 si tenés el modelo de Orden
+const Orden = require("../models/orden"); 
 const { validarJWT } = require("../middlewares/validar-jwt");
 const { calcularCostoEnvio } = require("../helpers/envio");
 

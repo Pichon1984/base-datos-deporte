@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Compra = require('../models/Compra');
+const Compra = require('../models/compra');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 
