@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Compra = require("../models/Compra"); // tu modelo de compra
+const Compra = require("../models/compra");
 const fetch = require("node-fetch");
 
 // Confirmar compra con envío
