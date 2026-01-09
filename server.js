@@ -131,13 +131,6 @@ mongoose
     process.exit(1);
   });
 
-// --- Exportar app (Vercel maneja el servidor) ---
+// --- Exportar app ---
 module.exports = app;
 
-// --- En local, levantar servidor automáticamente ---
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`🚀 Servidor local en http://localhost:${PORT}`);
-  });
-}
