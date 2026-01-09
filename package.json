@@ -7,8 +7,7 @@
   "main": "server.js",
   "scripts": {
     "dev": "cross-env NODE_ENV=development nodemon server.js",
-    "start": "cross-env NODE_ENV=production node server.js",
-    "vercel": "cross-env NODE_ENV=production node server.js"
+    "start": "cross-env NODE_ENV=production node server.js"
   },
   "dependencies": {
     "@emailjs/nodejs": "^5.0.2",
@@ -26,6 +25,8 @@
   "devDependencies": {
     "cross-env": "^10.1.0",
     "nodemon": "^3.1.11"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
-

@@ -1,6 +1,12 @@
+// --- Configuración de entorno ---
 const dotenv = require("dotenv");
-// En producción (Vercel) basta con dotenv.config() y variables definidas en el dashboard
-dotenv.config({ path: ".env.development" });
+
+// Cargar variables según entorno
+if (process.env.NODE_ENV === "production") {
+  dotenv.config({ path: ".env.production" });
+} else {
+  dotenv.config({ path: ".env.development" });
+}
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -9,7 +15,7 @@ const morgan = require("morgan");
 const fs = require("fs");
 const path = require("path");
 
-// Importar rutas
+// --- Importar rutas ---
 const authRoutes = require("./routes/auth");
 const usuariosRoutes = require("./routes/usuarios");
 const productosRoutes = require("./routes/productos");
@@ -24,16 +30,13 @@ const pagosRoutes = require("./routes/pagos");
 
 const app = express();
 
-// --- Middlewares ---
-const allowedOrigins = [
-  "http://localhost:5173",              // frontend local (Vite)
-  "https://react-deporte.netlify.app", // frontend en Netlify
-  "https://base-datos-deporte.vercel.app" // frontend en Vercel
-];
+// --- Configuración CORS dinámica ---
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : [];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Permitir llamadas internas (sin origin) y tus frontends
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -46,13 +49,8 @@ app.use(cors({
   credentials: true
 }));
 
-// Manejo explícito de preflight
-app.options("*", cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
-
-app.use(express.json()); // 👈 importante para que req.body no sea undefined
+// --- Middlewares básicos ---
+app.use(express.json());
 app.use(morgan("dev"));
 
 // Logs en desarrollo
@@ -133,10 +131,10 @@ mongoose
     process.exit(1);
   });
 
-// Exportar app (sin listen, Vercel maneja el servidor)
+// --- Exportar app (Vercel maneja el servidor) ---
 module.exports = app;
 
-// 👇 En local, levantar servidor automáticamente
+// --- En local, levantar servidor automáticamente ---
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
