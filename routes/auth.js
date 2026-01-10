@@ -61,7 +61,7 @@ router.post("/register", async (req, res) => {
       res.cookie("token", token, {
         httpOnly: true,
         secure: true,
-        sameSite: "strict",
+        sameSite: "none",   // 🔑 permite cookies cross-site
         maxAge: 12 * 60 * 60 * 1000,
       });
       return res.status(201).json({ msg: "Usuario registrado" });
@@ -114,7 +114,7 @@ router.post("/login", async (req, res) => {
       res.cookie("token", token, {
         httpOnly: true,
         secure: true,
-        sameSite: "strict",
+        sameSite: "none",   // 🔑 permite cookies cross-site
         maxAge: 12 * 60 * 60 * 1000, // 12 horas
       });
       return res.json({ msg: "Login correcto", usuario: usuarioData });
@@ -134,7 +134,7 @@ router.post("/logout", (req, res) => {
       res.clearCookie("token", {
         httpOnly: true,
         secure: true,
-        sameSite: "strict",
+        sameSite: "none",   // 🔑 igual que en login/register
       });
       return res.json({ msg: "Sesión cerrada (cookie eliminada)" });
     } else {
@@ -229,3 +229,4 @@ router.post("/reset-password", async (req, res) => {
 });
 
 module.exports = router;
+
