@@ -1,6 +1,7 @@
 const express = require("express");
-const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
+const { MercadoPagoConfig, Preference } = require("mercadopago");
 const Orden = require("../models/orden");
+const Compra = require("../models/compra"); // 👈 faltaba
 const { validarJWT } = require("../middlewares/validar-jwt");
 
 const router = express.Router();
@@ -9,6 +10,10 @@ const router = express.Router();
 const mpClient = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN,
 });
+
+// 🌍 URLs dinámicas según entorno
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
 // ✅ Crear preferencia de pago y orden
 router.post("/checkout", validarJWT, async (req, res) => {
@@ -48,12 +53,7 @@ router.post("/checkout", validarJWT, async (req, res) => {
 
     const ordenGuardada = await nuevaOrden.save();
 
-    // 👀 Log de URLs
-    console.log("Success URL:", "http://localhost:5173/checkout/success");
-    console.log("Failure URL:", "http://localhost:5173/checkout/failure");
-    console.log("Pending URL:", "http://localhost:5173/checkout/pending");
-
-    // 📌 Crear preferencia MercadoPago SIN auto_return
+    // 📌 Crear preferencia MercadoPago
     const preference = new Preference(mpClient);
     const response = await preference.create({
       body: {
@@ -64,13 +64,12 @@ router.post("/checkout", validarJWT, async (req, res) => {
         })),
         payer: { name: envio.nombre, email: envio.email },
         back_urls: {
-          success: "http://localhost:5173/checkout/success",
-          failure: "http://localhost:5173/checkout/failure",
-          pending: "http://localhost:5173/checkout/pending",
+          success: `${FRONTEND_URL}/checkout/success`,
+          failure: `${FRONTEND_URL}/checkout/failure`,
+          pending: `${FRONTEND_URL}/checkout/pending`,
         },
-        // ❌ auto_return deshabilitado en local
         external_reference: ordenGuardada._id.toString(),
-        notification_url: `${process.env.BASE_URL}/api/ordenes/webhook`,
+        notification_url: `${BASE_URL}/api/ordenes/webhook`,
       },
     });
 
@@ -96,34 +95,27 @@ router.post("/checkout", validarJWT, async (req, res) => {
   }
 });
 
-
 // ✅ Webhook de MercadoPago
 router.post("/webhook", async (req, res) => {
   try {
     const { type, data } = req.body;
 
-    // MercadoPago envía el payment_id
     if (type === "payment" && data && data.id) {
       const paymentId = data.id;
-
-      // Consultar el pago en MercadoPago
       const payment = await mpClient.payment.get(paymentId);
-      const info = payment.body; // 👈 la data real está en .body
+      const info = payment.body;
 
       console.log("🔔 Webhook recibido:", info);
 
-      // Buscar la orden por external_reference
       const orden = await Orden.findById(info.external_reference);
       if (!orden) {
         console.warn("⚠️ Orden no encontrada:", info.external_reference);
         return res.sendStatus(404);
       }
 
-      // Actualizar estado según pago
       if (info.status === "approved") {
         orden.estado = "pagada";
         await orden.save();
-
         await Compra.findOneAndUpdate(
           { ordenId: orden._id },
           { estado: "pagada" }
@@ -131,7 +123,6 @@ router.post("/webhook", async (req, res) => {
       } else if (info.status === "rejected") {
         orden.estado = "cancelada";
         await orden.save();
-
         await Compra.findOneAndUpdate(
           { ordenId: orden._id },
           { estado: "cancelada" }
@@ -139,14 +130,12 @@ router.post("/webhook", async (req, res) => {
       }
     }
 
-    res.sendStatus(200); // 👈 siempre responder 200 para evitar reintentos infinitos
+    res.sendStatus(200);
   } catch (error) {
     console.error("❌ Error en webhook:", error);
     res.sendStatus(500);
   }
 });
-
-
 
 // ✅ Cancelar orden
 router.delete("/:id", validarJWT, async (req, res) => {

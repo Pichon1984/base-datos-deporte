@@ -2,7 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Compra = require("../models/compra");
 const Producto = require("../models/producto");
-const Orden = require("../models/orden"); 
+const Orden = require("../models/orden");
 const { validarJWT } = require("../middlewares/validar-jwt");
 const { calcularCostoEnvio } = require("../helpers/envio");
 
@@ -120,12 +120,13 @@ router.get("/mias", validarJWT, async (req, res) => {
     res.status(500).json({ ok: false, error: "Error al obtener las compras" });
   }
 });
+
 /**
  * 📌 Obtener todas las compras (solo ADMIN) con filtros y paginación
  */
 router.get("/", validarJWT, async (req, res) => {
   try {
-    if (req.usuario.rol.toUpperCase() !== "ADMIN") {
+    if (req.usuario.rol !== "ADMIN") {
       return res.status(403).json({ ok: false, error: "Acceso denegado" });
     }
 
@@ -173,7 +174,7 @@ router.get("/:id/envio", validarJWT, async (req, res) => {
 
     const compraUsuarioId = compra.usuario._id ? compra.usuario._id.toString() : compra.usuario.toString();
 
-    if (req.usuario.rol.toUpperCase() !== "ADMIN" && compraUsuarioId !== req.usuario._id.toString()) {
+    if (req.usuario.rol !== "ADMIN" && compraUsuarioId !== req.usuario._id.toString()) {
       return res.status(403).json({ ok: false, error: "Acceso denegado" });
     }
 
@@ -207,7 +208,7 @@ router.get("/:id", validarJWT, async (req, res) => {
 
     const compraUsuarioId = compra.usuario._id ? compra.usuario._id.toString() : compra.usuario.toString();
 
-    if (req.usuario.rol.toUpperCase() !== "ADMIN" && compraUsuarioId !== req.usuario._id.toString()) {
+    if (req.usuario.rol !== "ADMIN" && compraUsuarioId !== req.usuario._id.toString()) {
       return res.status(403).json({ ok: false, error: "Acceso denegado" });
     }
 
@@ -217,12 +218,13 @@ router.get("/:id", validarJWT, async (req, res) => {
     res.status(500).json({ ok: false, error: "Error al obtener la compra" });
   }
 });
+
 /**
  * 📌 Actualizar estado de envío y tracking (solo ADMIN, con Andreani)
  */
 router.put("/:id/envio", validarJWT, async (req, res) => {
   try {
-    if (req.usuario.rol.toUpperCase() !== "ADMIN") {
+    if (req.usuario.rol !== "ADMIN") {
       return res.status(403).json({ ok: false, error: "Acceso denegado" });
     }
 
@@ -355,4 +357,3 @@ router.post("/andreani/webhook", async (req, res) => {
 });
 
 module.exports = router;
-
