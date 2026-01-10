@@ -12,7 +12,6 @@ const client = new MercadoPagoConfig({
 
 /**
  * 📌 Crear preferencia de pago desde una compra (para Brick)
- * ✅ Sin back_urls ni auto_return para evitar el error de MP
  */
 router.post("/crear/:compraId", async (req, res) => {
   try {
@@ -31,7 +30,7 @@ router.post("/crear/:compraId", async (req, res) => {
 
     const items = compra.productos.map(p => ({
       title: p.nombre,
-      unit_price: Number(Number(p.precio).toFixed(2)),
+      unit_price: Number(p.precio.toFixed(2)),
       quantity: Number(p.cantidad),
       currency_id: "ARS",
     }));
@@ -39,7 +38,7 @@ router.post("/crear/:compraId", async (req, res) => {
     if (compra.costoEnvio > 0) {
       items.push({
         title: "Costo de envío",
-        unit_price: Number(Number(compra.costoEnvio).toFixed(2)),
+        unit_price: Number(compra.costoEnvio.toFixed(2)),
         quantity: 1,
         currency_id: "ARS",
       });
@@ -49,16 +48,16 @@ router.post("/crear/:compraId", async (req, res) => {
       body: {
         items,
         external_reference: compraId,
-        // ❌ Sin back_urls ni auto_return
       },
     });
 
+    // 👇 CORREGIDO: usar result.id directamente
     res.json({
       ok: true,
       preferenceId: result.id,
       init_point: result.init_point,
       sandbox_init_point: result.sandbox_init_point,
-      amount: Number(Number(compra.totalFinal).toFixed(2)),
+      amount: Number(compra.totalFinal.toFixed(2)),
     });
   } catch (error) {
     console.error("❌ Error creando preferencia:", error);
@@ -85,8 +84,8 @@ router.post("/procesar", async (req, res) => {
     const paymentClient = new Payment(client);
 
     const monto = Number(amount) > 0
-      ? Number(Number(amount).toFixed(2))
-      : Number(Number(compra.totalFinal).toFixed(2));
+      ? Number(amount.toFixed(2))
+      : Number(compra.totalFinal.toFixed(2));
 
     const payment = await paymentClient.create({
       body: {
@@ -106,19 +105,20 @@ router.post("/procesar", async (req, res) => {
       },
     });
 
-    const estado = payment.status;
+    const estado = payment.body.status;
 
     compra.estado =
       estado === "approved" ? "pagada" :
-      estado === "rejected" ? "fallida" : "pendiente";
+      estado === "rejected" ? "fallida" :
+      "pendiente";
 
-    compra.paymentId = payment.id;
+    compra.paymentId = payment.body.id;
     compra.paymentStatus = estado;
     compra.pagoEventos = Array.isArray(compra.pagoEventos) ? compra.pagoEventos : [];
     compra.pagoEventos.push({
       status: estado,
       fecha: new Date(),
-      paymentId: payment.id,
+      paymentId: payment.body.id,
     });
 
     await compra.save();
@@ -148,10 +148,10 @@ router.post("/webhook", async (req, res) => {
     }
 
     const paymentClient = new Payment(client);
-    const payment = await paymentClient.get({ id: data.id });
+    const payment = await paymentClient.get(data.id);
 
-    const estado = payment.status;
-    const compraId = payment.external_reference;
+    const estado = payment.body.status;
+    const compraId = payment.body.external_reference;
 
     const compra = await Compra.findById(compraId).session(session);
     if (!compra) {
@@ -168,7 +168,6 @@ router.post("/webhook", async (req, res) => {
           throw new Error(`Producto no encontrado: ${item.productoId}`);
         }
 
-        // ✅ Validar y descontar stock por talle si corresponde
         if (item.talle) {
           const talleObj = Array.isArray(producto.tallesUnidades)
             ? producto.tallesUnidades.find(t => t.talle === item.talle)
@@ -185,7 +184,6 @@ router.post("/webhook", async (req, res) => {
           producto.stock -= item.cantidad;
         }
 
-        // Recalcular stock total desde talles si existen
         producto.stock = Array.isArray(producto.tallesUnidades) && producto.tallesUnidades.length > 0
           ? producto.tallesUnidades.reduce((acc, t) => acc + (t.stock || 0), 0)
           : producto.stock;
@@ -201,13 +199,13 @@ router.post("/webhook", async (req, res) => {
       compra.estado = "pendiente";
     }
 
-    compra.paymentId = payment.id;
+    compra.paymentId = payment.body.id;
     compra.paymentStatus = estado;
     compra.pagoEventos = Array.isArray(compra.pagoEventos) ? compra.pagoEventos : [];
     compra.pagoEventos.push({
       status: estado,
       fecha: new Date(),
-      paymentId: payment.id,
+      paymentId: payment.body.id,
     });
 
     await compra.save({ session });
@@ -226,4 +224,3 @@ router.post("/webhook", async (req, res) => {
 });
 
 module.exports = router;
-

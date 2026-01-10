@@ -12,7 +12,7 @@ const compraSchema = new mongoose.Schema(
         precio: { type: Number, required: true },
         cantidad: { type: Number, required: true },
         talle: String,
-        subtotal: Number,
+        subtotal: { type: Number, default: 0 },
       },
     ],
 
@@ -44,6 +44,7 @@ const compraSchema = new mongoose.Schema(
         fecha: { type: Date, default: Date.now },
         origen: { type: String },
         destino: { type: String },
+        usuarioAccion: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario" }, // 👈 opcional
       },
     ],
 
@@ -55,39 +56,36 @@ const compraSchema = new mongoose.Schema(
         status: { type: String },
         fecha: { type: Date, default: Date.now },
         paymentId: { type: String },
+        usuarioAccion: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario" }, // 👈 opcional
       },
     ],
+
+    external_reference: { type: String, default: null }, // 👈 para trazabilidad con MP
   },
   { timestamps: true }
 );
 
-// 🔑 Middleware para calcular subtotal y totalFinal automáticamente con dos decimales
+// 🔑 Helper para redondear a 2 decimales
+const toTwoDecimals = (num) => Math.round(num * 100) / 100;
+
+// 🔑 Middleware para calcular subtotal y totalFinal automáticamente
 compraSchema.pre("save", function (next) {
   if (Array.isArray(this.productos) && this.productos.length > 0) {
     this.total = this.productos.reduce((acc, item) => {
-      // normalizamos precio
       if (Number.isFinite(item.precio)) {
-        item.precio = Number(parseFloat(item.precio).toFixed(2));
+        item.precio = toTwoDecimals(item.precio);
       }
-
-      // calculamos subtotal
       const subtotalItem = item.subtotal || item.precio * item.cantidad;
-      item.subtotal = Number(parseFloat(subtotalItem).toFixed(2));
-
+      item.subtotal = toTwoDecimals(subtotalItem);
       return acc + item.subtotal;
     }, 0);
   } else {
     this.total = 0;
   }
 
-  // normalizamos total y costo de envío
-  this.total = Number(parseFloat(this.total).toFixed(2));
-  this.costoEnvio = Number.isFinite(this.costoEnvio)
-    ? Number(parseFloat(this.costoEnvio).toFixed(2))
-    : 0;
-
-  // calculamos totalFinal
-  this.totalFinal = Number(parseFloat(this.total + this.costoEnvio).toFixed(2));
+  this.total = toTwoDecimals(this.total);
+  this.costoEnvio = Number.isFinite(this.costoEnvio) ? toTwoDecimals(this.costoEnvio) : 0;
+  this.totalFinal = toTwoDecimals(this.total + this.costoEnvio);
 
   next();
 });
@@ -99,18 +97,16 @@ compraSchema.pre("findOneAndUpdate", function (next) {
   if (update.productos && Array.isArray(update.productos)) {
     let total = update.productos.reduce((acc, item) => {
       if (Number.isFinite(item.precio)) {
-        item.precio = Number(parseFloat(item.precio).toFixed(2));
+        item.precio = toTwoDecimals(item.precio);
       }
       const subtotalItem = item.subtotal || item.precio * item.cantidad;
-      item.subtotal = Number(parseFloat(subtotalItem).toFixed(2));
+      item.subtotal = toTwoDecimals(subtotalItem);
       return acc + item.subtotal;
     }, 0);
 
-    update.total = Number(parseFloat(total).toFixed(2));
-    update.costoEnvio = Number.isFinite(update.costoEnvio)
-      ? Number(parseFloat(update.costoEnvio).toFixed(2))
-      : 0;
-    update.totalFinal = Number(parseFloat(update.total + update.costoEnvio).toFixed(2));
+    update.total = toTwoDecimals(total);
+    update.costoEnvio = Number.isFinite(update.costoEnvio) ? toTwoDecimals(update.costoEnvio) : 0;
+    update.totalFinal = toTwoDecimals(update.total + update.costoEnvio);
   }
 
   next();
