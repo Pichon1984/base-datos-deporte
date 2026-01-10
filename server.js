@@ -1,7 +1,8 @@
 // --- Configuración de entorno ---
 const dotenv = require("dotenv");
 
-// Cargar variables según entorno
+// Fallback a .env y luego sobreescribir según entorno
+dotenv.config();
 if (process.env.NODE_ENV === "production") {
   dotenv.config({ path: ".env.production" });
 } else {
@@ -30,6 +31,9 @@ const pagosRoutes = require("./routes/pagos");
 
 const app = express();
 
+// --- Middlewares básicos ---
+app.use(express.json());
+
 // --- Configuración CORS dinámica ---
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
@@ -49,20 +53,17 @@ app.use(cors({
   credentials: true
 }));
 
-// --- Middlewares básicos ---
-app.use(express.json());
-app.use(morgan("dev"));
-
-// Logs en desarrollo
-if (process.env.NODE_ENV !== "production") {
+// --- Logs ---
+if (process.env.NODE_ENV === "production") {
+  app.use(morgan("combined"));
+} else {
   const logDir = path.join(__dirname, "../logs");
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir);
   }
-  const accessLogStream = fs.createWriteStream(path.join(logDir, "access.log"), {
-    flags: "a",
-  });
-  app.use(morgan("combined", { stream: accessLogStream }));
+  const accessLogStream = fs.createWriteStream(path.join(logDir, "access.log"), { flags: "a" });
+  app.use(morgan("dev")); // consola
+  app.use(morgan("combined", { stream: accessLogStream })); // archivo
 }
 
 app.use(express.static("public"));
@@ -73,10 +74,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/test", (req, res) => {
-  res.json({
-    ok: true,
-    mensaje: "MongoDB conectado y backend funcionando 🚀",
-  });
+  res.json({ ok: true, mensaje: "MongoDB conectado y backend funcionando 🚀" });
 });
 
 app.get("/api/test-db", async (req, res) => {
@@ -116,15 +114,12 @@ if (!mongoUri) {
   process.exit(1);
 }
 
-mongoose
-  .connect(mongoUri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+mongoose.connect(mongoUri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
   .then(() => {
-    if (process.env.NODE_ENV !== "production") {
-      console.log("✅ Conectado a MongoDB");
-    }
+    console.log("✅ Conectado a MongoDB");
   })
   .catch((err) => {
     console.error("❌ Error al conectar a MongoDB:", err.message);
@@ -133,4 +128,3 @@ mongoose
 
 // --- Exportar app ---
 module.exports = app;
-
