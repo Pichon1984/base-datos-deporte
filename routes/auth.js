@@ -7,9 +7,8 @@ const { validarJWT } = require("../middlewares/validar-jwt");
 
 const router = Router();
 
-// Función auxiliar para validar contraseña
+// 👉 Validación de contraseña
 function validarPassword(password) {
-  // mínimo 8 caracteres, al menos una mayúscula y un número
   const regex = /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
   return regex.test(password);
 }
@@ -17,16 +16,9 @@ function validarPassword(password) {
 // 👉 Registro
 router.post("/register", async (req, res) => {
   const {
-    nombre,
-    apellido,
-    correo,
-    password,
-    telefono,
-    direccion,
-    provincia,
-    localidad,
-    codigoPostal,
-    dni,
+    nombre, apellido, correo, password,
+    telefono, direccion, provincia, localidad,
+    codigoPostal, dni,
   } = req.body;
 
   try {
@@ -51,56 +43,27 @@ router.post("/register", async (req, res) => {
     }
 
     const usuario = new Usuario({
-      nombre,
-      apellido,
-      correo,
-      password, // el modelo lo hashea en pre('save')
-      telefono,
-      direccion,
-      provincia,
-      localidad,
-      codigoPostal,
-      dni,
+      nombre, apellido, correo, password,
+      telefono, direccion, provincia, localidad,
+      codigoPostal, dni,
       estado: true,
       rol: "CLIENTE",
     });
 
     await usuario.save();
-
     const token = await generarJWT(usuario.id);
 
-    // 🔑 En producción: cookie httpOnly
     if (process.env.NODE_ENV === "production") {
       res.cookie("token", token, {
         httpOnly: true,
         secure: true,
         sameSite: "strict",
-        maxAge: 12 * 60 * 60 * 1000, // 12h
+        maxAge: 12 * 60 * 60 * 1000,
       });
-      return res.status(201).json({
-        msg: "Usuario registrado",
-        usuario: {
-          id: usuario.id,
-          nombre: usuario.nombre,
-          apellido: usuario.apellido,
-          correo: usuario.correo,
-          rol: usuario.rol,
-        },
-      });
+      return res.status(201).json({ msg: "Usuario registrado" });
     }
 
-    // 🛠 En local: devolver token en body
-    return res.status(201).json({
-      msg: "Usuario registrado",
-      usuario: {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        apellido: usuario.apellido,
-        correo: usuario.correo,
-        rol: usuario.rol,
-      },
-      token,
-    });
+    return res.status(201).json({ msg: "Usuario registrado", token });
   } catch (error) {
     console.error("❌ Error en register:", error.message);
     return res.status(500).json({ msg: "Error interno del servidor" });
@@ -117,12 +80,8 @@ router.post("/login", async (req, res) => {
     }
 
     const usuario = await Usuario.findOne({ correo });
-    if (!usuario) {
+    if (!usuario || !usuario.estado) {
       return res.status(400).json({ msg: "Usuario / Password incorrectos" });
-    }
-
-    if (!usuario.estado) {
-      return res.status(403).json({ msg: "Usuario inactivo" });
     }
 
     const validPassword = await bcrypt.compare(password, usuario.password);
@@ -139,27 +98,10 @@ router.post("/login", async (req, res) => {
         sameSite: "strict",
         maxAge: 12 * 60 * 60 * 1000,
       });
-      return res.json({
-        usuario: {
-          id: usuario.id,
-          nombre: usuario.nombre,
-          apellido: usuario.apellido,
-          correo: usuario.correo,
-          rol: usuario.rol,
-        },
-      });
+      return res.json({ msg: "Login correcto" });
     }
 
-    return res.json({
-      usuario: {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        apellido: usuario.apellido,
-        correo: usuario.correo,
-        rol: usuario.rol,
-      },
-      token,
-    });
+    return res.json({ msg: "Login correcto", token });
   } catch (error) {
     console.error("❌ Error en login:", error.message);
     return res.status(500).json({ msg: "Error interno del servidor" });
@@ -175,9 +117,9 @@ router.post("/logout", (req, res) => {
         secure: true,
         sameSite: "strict",
       });
-      return res.json({ msg: "Sesión cerrada correctamente (cookie eliminada)" });
+      return res.json({ msg: "Sesión cerrada (cookie eliminada)" });
     } else {
-      return res.json({ msg: "Sesión cerrada correctamente (borra localStorage en frontend)" });
+      return res.json({ msg: "Sesión cerrada (borra localStorage en frontend)" });
     }
   } catch (error) {
     console.error("❌ Error en logout:", error.message);
@@ -185,7 +127,7 @@ router.post("/logout", (req, res) => {
   }
 });
 
-// 👉 Check sesión
+// 👉 Check sesión (unificado para dev y prod)
 router.get("/check", validarJWT, (req, res) => {
   try {
     return res.json({
@@ -208,25 +150,20 @@ router.get("/check", validarJWT, (req, res) => {
 router.post("/forgot-password", async (req, res) => {
   try {
     const { correo } = req.body;
-    if (!correo) {
-      return res.status(400).json({ msg: "El correo es obligatorio" });
-    }
+    if (!correo) return res.status(400).json({ msg: "El correo es obligatorio" });
 
     const usuario = await Usuario.findOne({ correo });
-    if (!usuario) {
-      return res.status(404).json({ msg: "Usuario no encontrado" });
-    }
+    if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
 
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
     usuario.resetToken = hashedToken;
-    usuario.resetTokenExpire = Date.now() + 3600000; // 1 hora
+    usuario.resetTokenExpire = Date.now() + 3600000;
     await usuario.save();
 
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-
-    return res.json({ msg: "Se ha generado el enlace de recuperación", link: resetLink });
+    return res.json({ msg: "Enlace de recuperación generado", link: resetLink });
   } catch (error) {
     console.error("❌ Error en forgot-password:", error.message);
     return res.status(500).json({ msg: "Error interno del servidor" });
@@ -248,7 +185,6 @@ router.post("/reset-password", async (req, res) => {
     }
 
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
     const usuario = await Usuario.findOne({
       resetToken: hashedToken,
       resetTokenExpire: { $gt: Date.now() },
@@ -258,10 +194,9 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ msg: "Token inválido o expirado" });
     }
 
-    usuario.password = newPassword; // el modelo lo hashea en pre('save')
+    usuario.password = newPassword;
     usuario.resetToken = undefined;
     usuario.resetTokenExpire = undefined;
-
     await usuario.save();
 
     return res.json({ msg: "Contraseña actualizada correctamente" });
@@ -272,3 +207,4 @@ router.post("/reset-password", async (req, res) => {
 });
 
 module.exports = router;
+
