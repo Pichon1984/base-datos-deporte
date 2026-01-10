@@ -7,7 +7,7 @@ const ProductoSchema = new mongoose.Schema(
     precio: { type: Number, required: true },
     cantidad: { type: Number, required: true },
     talle: { type: String },
-    subtotal: { type: Number }
+    subtotal: { type: Number, default: 0 } // 👈 opcional, calculado en backend
   },
   { _id: false }
 );
@@ -46,7 +46,8 @@ const OrdenSchema = new mongoose.Schema(
       init_point: { type: String, default: null },
       payment_id: { type: String, default: null },
       status: { type: String, default: null },
-      status_detail: { type: String, default: null }
+      status_detail: { type: String, default: null },
+      update_time: { type: Date } // 👈 opcional, para trazabilidad
     },
 
     external_reference: { type: String, default: null },
@@ -57,7 +58,5 @@ const OrdenSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ Exportación segura para evitar OverwriteModelError
-module.exports = mongoose.models.orden || mongoose.model("orden", OrdenSchema);
-
-
+// ✅ Exportación segura
+module.exports = mongoose.models.Orden || mongoose.model("Orden", OrdenSchema);

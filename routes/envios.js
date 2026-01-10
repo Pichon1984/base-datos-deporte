@@ -9,6 +9,10 @@ router.post("/compras/confirmar/:id", async (req, res) => {
     const { id } = req.params;
     const { origen, destino, peso } = req.body; // datos para Andreani
 
+    if (!origen || !destino || !peso) {
+      return res.status(400).json({ ok: false, error: "Datos de envío incompletos" });
+    }
+
     const compra = await Compra.findById(id);
     if (!compra) {
       return res.status(404).json({ ok: false, error: "Compra no encontrada" });
@@ -37,11 +41,13 @@ router.post("/compras/confirmar/:id", async (req, res) => {
     }
 
     const data = await response.json();
-    const costoEnvio = data.total || data.price || 0; // depende de la respuesta Andreani
+    console.log("📦 Respuesta Andreani:", data);
+
+    const costoEnvio = data.total || data.price || 0; // ajustar según respuesta real
 
     // 👉 Guardar costo de envío en la compra
     compra.costoEnvio = costoEnvio;
-    compra.totalFinal = compra.subtotalProductos + costoEnvio;
+    compra.totalFinal = compra.total + costoEnvio; // 👈 usar compra.total
     compra.estadoEnvio = "pendiente"; // inicial
     await compra.save();
 

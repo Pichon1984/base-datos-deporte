@@ -102,7 +102,8 @@ router.post("/webhook", async (req, res) => {
 
     if (type === "payment" && data && data.id) {
       const paymentId = data.id;
-      const payment = await mpClient.payment.get(paymentId);
+      const paymentClient = new Payment(mpClient);
+      const payment = await paymentClient.get(paymentId);
       const info = payment.body;
 
       console.log("🔔 Webhook recibido:", info);
@@ -113,21 +114,18 @@ router.post("/webhook", async (req, res) => {
         return res.sendStatus(404);
       }
 
+      orden.mercadoPago.paymentId = paymentId;
+      orden.mercadoPago.status = info.status;
+
       if (info.status === "approved") {
         orden.estado = "pagada";
-        await orden.save();
-        await Compra.findOneAndUpdate(
-          { ordenId: orden._id },
-          { estado: "pagada" }
-        );
+        await Compra.findOneAndUpdate({ ordenId: orden._id }, { estado: "pagada" });
       } else if (info.status === "rejected") {
         orden.estado = "cancelada";
-        await orden.save();
-        await Compra.findOneAndUpdate(
-          { ordenId: orden._id },
-          { estado: "cancelada" }
-        );
+        await Compra.findOneAndUpdate({ ordenId: orden._id }, { estado: "cancelada" });
       }
+
+      await orden.save();
     }
 
     res.sendStatus(200);
@@ -136,6 +134,7 @@ router.post("/webhook", async (req, res) => {
     res.sendStatus(500);
   }
 });
+
 
 // ✅ Cancelar orden
 router.delete("/:id", validarJWT, async (req, res) => {
