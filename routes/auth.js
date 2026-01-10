@@ -42,8 +42,12 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ msg: "El correo ya está registrado" });
     }
 
+    // 🔐 Hashear contraseña antes de guardar
+    const salt = bcrypt.genSaltSync();
+    const hashedPassword = bcrypt.hashSync(password, salt);
+
     const usuario = new Usuario({
-      nombre, apellido, correo, password,
+      nombre, apellido, correo, password: hashedPassword,
       telefono, direccion, provincia, localidad,
       codigoPostal, dni,
       estado: true,
@@ -91,17 +95,32 @@ router.post("/login", async (req, res) => {
 
     const token = await generarJWT(usuario.id);
 
+    // Normalizamos datos de usuario para frontend
+    const usuarioData = {
+      id: usuario._id,
+      nombre: usuario.nombre,
+      apellido: usuario.apellido,
+      correo: usuario.correo,
+      rol: usuario.rol,
+      telefono: usuario.telefono,
+      direccion: usuario.direccion,
+      provincia: usuario.provincia,
+      localidad: usuario.localidad,
+      codigoPostal: usuario.codigoPostal,
+      dni: usuario.dni,
+    };
+
     if (process.env.NODE_ENV === "production") {
       res.cookie("token", token, {
         httpOnly: true,
         secure: true,
         sameSite: "strict",
-        maxAge: 12 * 60 * 60 * 1000,
+        maxAge: 12 * 60 * 60 * 1000, // 12 horas
       });
-      return res.json({ msg: "Login correcto" });
+      return res.json({ msg: "Login correcto", usuario: usuarioData });
     }
 
-    return res.json({ msg: "Login correcto", token });
+    return res.json({ msg: "Login correcto", token, usuario: usuarioData });
   } catch (error) {
     console.error("❌ Error en login:", error.message);
     return res.status(500).json({ msg: "Error interno del servidor" });
@@ -127,7 +146,7 @@ router.post("/logout", (req, res) => {
   }
 });
 
-// 👉 Check sesión (unificado para dev y prod)
+// 👉 Check sesión
 router.get("/check", validarJWT, (req, res) => {
   try {
     return res.json({
@@ -194,7 +213,10 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ msg: "Token inválido o expirado" });
     }
 
-    usuario.password = newPassword;
+    // 🔐 Hashear nueva contraseña
+    const salt = bcrypt.genSaltSync();
+    usuario.password = bcrypt.hashSync(newPassword, salt);
+
     usuario.resetToken = undefined;
     usuario.resetTokenExpire = undefined;
     await usuario.save();
@@ -207,4 +229,3 @@ router.post("/reset-password", async (req, res) => {
 });
 
 module.exports = router;
-
