@@ -5,8 +5,7 @@ const {
   usuariosPost,
   usuarioDelete,
   usuarioPut,
-  guardarUbicacion,
-  me
+  guardarUbicacion
 } = require("../controllers/usuarios");
 const { validarJWT } = require("../middlewares/validar-jwt");
 const { validarRol } = require("../middlewares/validarRol");
@@ -25,32 +24,55 @@ router.get("/me", [validarJWT], async (req, res) => {
   try {
     const usuario = await Usuario.findById(req.usuario._id);
     if (!usuario) {
-      return res.status(404).json({ msg: "Usuario no encontrado" });
+      return res.status(404).json({ ok: false, msg: "Usuario no encontrado" });
     }
     const obj = usuario.toObject();
     delete obj.password;
-    res.json(obj);
+    res.json({ ok: true, usuario: obj });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ msg: "Error al obtener perfil" });
+    res.status(500).json({ ok: false, msg: "Error al obtener perfil" });
   }
 });
 
 // 📌 PUT actualizar perfil del usuario autenticado
 router.put("/me", [validarJWT], async (req, res) => {
   try {
-    const usuario = await Usuario.findByIdAndUpdate(req.usuario._id, req.body, { new: true });
+    // ✅ Solo permitimos actualizar estos campos
+    const camposPermitidos = [
+      "correo",
+      "telefono",
+      "direccion",
+      "provincia",
+      "localidad",
+      "codigoPostal"
+    ];
+
+    const updates = {};
+
+    // ✅ Filtramos: si el campo viene definido y no está vacío, lo actualizamos
+    camposPermitidos.forEach((campo) => {
+      if (req.body[campo] !== undefined && req.body[campo] !== "") {
+        updates[campo] = req.body[campo];
+      }
+    });
+
+    // 🔒 Nombre, apellido y DNI quedan protegidos (no se actualizan)
+    const usuario = await Usuario.findByIdAndUpdate(req.usuario._id, updates, { new: true });
     if (!usuario) {
-      return res.status(404).json({ msg: "Usuario no encontrado" });
+      return res.status(404).json({ ok: false, msg: "Usuario no encontrado" });
     }
+
     const obj = usuario.toObject();
     delete obj.password;
-    res.json(obj);
+
+    res.json({ ok: true, usuario: obj });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ msg: "Error al actualizar perfil" });
+    res.status(500).json({ ok: false, msg: "Error al actualizar perfil" });
   }
 });
+
 
 // 📌 GET usuario por ID - Solo ADMIN
 router.get("/:id", [
@@ -91,5 +113,6 @@ router.delete("/:id", [
 router.post("/ubicacion", [validarJWT], guardarUbicacion);
 
 module.exports = router;
+
 
 
