@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const Usuario = require("../models/usuario");
 const { generarJWT } = require("../helpers/generar-jwt");
 const crypto = require("crypto");
-
+const { validarJWT } = require("../middlewares/validar-jwt");
 const router = Router();
 
 // Función auxiliar para validar contraseña
@@ -15,7 +15,18 @@ function validarPassword(password) {
 
 // Registro
 router.post("/register", async (req, res) => {
-  const { nombre, apellido, correo, password, telefono, direccion, provincia, localidad, codigoPostal, dni } = req.body;
+  const {
+    nombre,
+    apellido,
+    correo,
+    password,
+    telefono,
+    direccion,
+    provincia,
+    localidad,
+    codigoPostal,
+    dni,
+  } = req.body;
 
   try {
     if (!correo || !password) {
@@ -31,7 +42,7 @@ router.post("/register", async (req, res) => {
     // Validar complejidad de contraseña
     if (!validarPassword(password)) {
       return res.status(400).json({
-        msg: "La contraseña debe tener mínimo 8 caracteres, incluir una mayúscula y un número"
+        msg: "La contraseña debe tener mínimo 8 caracteres, incluir una mayúscula y un número",
       });
     }
 
@@ -59,7 +70,7 @@ router.post("/register", async (req, res) => {
 
     const token = await generarJWT(usuario.id);
 
-    res.status(201).json({
+    return res.status(201).json({
       msg: "Usuario registrado",
       usuario: {
         id: usuario.id,
@@ -70,8 +81,9 @@ router.post("/register", async (req, res) => {
       },
       token,
     });
-  } catch {
-    res.status(500).json({ msg: "Error interno del servidor" });
+  } catch (error) {
+    console.error("❌ Error en register:", error.message);
+    return res.status(500).json({ msg: "Error interno del servidor" });
   }
 });
 
@@ -100,7 +112,7 @@ router.post("/login", async (req, res) => {
 
     const token = await generarJWT(usuario.id);
 
-    res.json({
+    return res.json({
       usuario: {
         id: usuario.id,
         nombre: usuario.nombre,
@@ -110,10 +122,50 @@ router.post("/login", async (req, res) => {
       },
       token,
     });
-  } catch {
-    res.status(500).json({ msg: "Error interno del servidor" });
+  } catch (error) {
+    console.error("❌ Error en login:", error.message);
+    return res.status(500).json({ msg: "Error interno del servidor" });
   }
 });
+// Logout
+router.post("/logout", (req, res) => {
+  try {
+    if (process.env.NODE_ENV === "production") {
+      // 🧹 En producción: limpiar cookie httpOnly
+      res.clearCookie("token", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+      });
+      return res.json({ msg: "Sesión cerrada correctamente (cookie eliminada)" });
+    } else {
+      // 🛠 En desarrollo: frontend borra localStorage
+      return res.json({ msg: "Sesión cerrada correctamente (borra localStorage en frontend)" });
+    }
+  } catch (error) {
+    console.error("❌ Error en logout:", error.message);
+    return res.status(500).json({ msg: "Error interno del servidor" });
+  }
+});
+// Check sesión
+router.get("/check", validarJWT, (req, res) => {
+  try {
+    return res.json({
+      ok: true,
+      usuario: {
+        id: req.usuario.id,
+        nombre: req.usuario.nombre,
+        apellido: req.usuario.apellido,
+        correo: req.usuario.correo,
+        rol: req.usuario.rol,
+      }
+    });
+  } catch (error) {
+    console.error("❌ Error en check:", error.message);
+    return res.status(500).json({ ok: false, msg: "Error interno del servidor" });
+  }
+});
+
 
 // Forgot password
 router.post("/forgot-password", async (req, res) => {
@@ -137,9 +189,10 @@ router.post("/forgot-password", async (req, res) => {
 
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
 
-    res.json({ msg: "Se ha generado el enlace de recuperación", link: resetLink });
-  } catch {
-    res.status(500).json({ msg: "Error interno del servidor" });
+    return res.json({ msg: "Se ha generado el enlace de recuperación", link: resetLink });
+  } catch (error) {
+    console.error("❌ Error en forgot-password:", error.message);
+    return res.status(500).json({ msg: "Error interno del servidor" });
   }
 });
 
@@ -150,13 +203,13 @@ router.post("/reset-password", async (req, res) => {
     if (!token || !newPassword) {
       return res.status(400).json({ msg: "Token y nueva contraseña son obligatorios" });
     }
-console.log("📩 Body recibido en reset-password:", req.body);
 
+    console.log("📩 Body recibido en reset-password:", req.body);
 
     // Validar complejidad de contraseña
     if (!validarPassword(newPassword)) {
       return res.status(400).json({
-        msg: "La contraseña debe tener mínimo 8 caracteres, incluir una mayúscula y un número"
+        msg: "La contraseña debe tener mínimo 8 caracteres, incluir una mayúscula y un número",
       });
     }
 
@@ -164,7 +217,7 @@ console.log("📩 Body recibido en reset-password:", req.body);
 
     const usuario = await Usuario.findOne({
       resetToken: hashedToken,
-      resetTokenExpire: { $gt: Date.now() }
+      resetTokenExpire: { $gt: Date.now() },
     });
 
     if (!usuario) {
@@ -177,14 +230,11 @@ console.log("📩 Body recibido en reset-password:", req.body);
 
     await usuario.save();
 
-    res.json({ msg: "Contraseña actualizada correctamente" });
-  } catch {
-    res.status(500).json({ msg: "Error interno del servidor" });
+    return res.json({ msg: "Contraseña actualizada correctamente" });
+  } catch (error) {
+    console.error("❌ Error en reset-password:", error.message);
+    return res.status(500).json({ msg: "Error interno del servidor" });
   }
 });
 
 module.exports = router;
-
-
-
-
