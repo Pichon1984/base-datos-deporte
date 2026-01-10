@@ -15,6 +15,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const fs = require("fs");
 const path = require("path");
+const cookieParser = require("cookie-parser");
 
 // --- Importar rutas ---
 const authRoutes = require("./routes/auth");
@@ -33,7 +34,7 @@ const app = express();
 
 // --- Middlewares básicos ---
 app.use(express.json());
-
+app.use(cookieParser());
 // --- Configuración CORS dinámica ---
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")

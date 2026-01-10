@@ -4,6 +4,7 @@ const Usuario = require("../models/usuario");
 const { generarJWT } = require("../helpers/generar-jwt");
 const crypto = require("crypto");
 const { validarJWT } = require("../middlewares/validar-jwt");
+
 const router = Router();
 
 // Función auxiliar para validar contraseña
@@ -13,7 +14,7 @@ function validarPassword(password) {
   return regex.test(password);
 }
 
-// Registro
+// 👉 Registro
 router.post("/register", async (req, res) => {
   const {
     nombre,
@@ -33,13 +34,11 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ msg: "Correo y contraseña son obligatorios" });
     }
 
-    // Validar formato de correo
     const correoRegex = /^\S+@\S+\.\S+$/;
     if (!correoRegex.test(correo)) {
       return res.status(400).json({ msg: "Formato de correo inválido" });
     }
 
-    // Validar complejidad de contraseña
     if (!validarPassword(password)) {
       return res.status(400).json({
         msg: "La contraseña debe tener mínimo 8 caracteres, incluir una mayúscula y un número",
@@ -55,7 +54,7 @@ router.post("/register", async (req, res) => {
       nombre,
       apellido,
       correo,
-      password, // texto plano, el modelo lo hashea en pre('save')
+      password, // el modelo lo hashea en pre('save')
       telefono,
       direccion,
       provincia,
@@ -70,6 +69,27 @@ router.post("/register", async (req, res) => {
 
     const token = await generarJWT(usuario.id);
 
+    // 🔑 En producción: cookie httpOnly
+    if (process.env.NODE_ENV === "production") {
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        maxAge: 12 * 60 * 60 * 1000, // 12h
+      });
+      return res.status(201).json({
+        msg: "Usuario registrado",
+        usuario: {
+          id: usuario.id,
+          nombre: usuario.nombre,
+          apellido: usuario.apellido,
+          correo: usuario.correo,
+          rol: usuario.rol,
+        },
+      });
+    }
+
+    // 🛠 En local: devolver token en body
     return res.status(201).json({
       msg: "Usuario registrado",
       usuario: {
@@ -87,7 +107,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Login
+// 👉 Login
 router.post("/login", async (req, res) => {
   const { correo, password } = req.body;
 
@@ -112,6 +132,24 @@ router.post("/login", async (req, res) => {
 
     const token = await generarJWT(usuario.id);
 
+    if (process.env.NODE_ENV === "production") {
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        maxAge: 12 * 60 * 60 * 1000,
+      });
+      return res.json({
+        usuario: {
+          id: usuario.id,
+          nombre: usuario.nombre,
+          apellido: usuario.apellido,
+          correo: usuario.correo,
+          rol: usuario.rol,
+        },
+      });
+    }
+
     return res.json({
       usuario: {
         id: usuario.id,
@@ -127,11 +165,11 @@ router.post("/login", async (req, res) => {
     return res.status(500).json({ msg: "Error interno del servidor" });
   }
 });
-// Logout
+
+// 👉 Logout
 router.post("/logout", (req, res) => {
   try {
     if (process.env.NODE_ENV === "production") {
-      // 🧹 En producción: limpiar cookie httpOnly
       res.clearCookie("token", {
         httpOnly: true,
         secure: true,
@@ -139,7 +177,6 @@ router.post("/logout", (req, res) => {
       });
       return res.json({ msg: "Sesión cerrada correctamente (cookie eliminada)" });
     } else {
-      // 🛠 En desarrollo: frontend borra localStorage
       return res.json({ msg: "Sesión cerrada correctamente (borra localStorage en frontend)" });
     }
   } catch (error) {
@@ -147,7 +184,8 @@ router.post("/logout", (req, res) => {
     return res.status(500).json({ msg: "Error interno del servidor" });
   }
 });
-// Check sesión
+
+// 👉 Check sesión
 router.get("/check", validarJWT, (req, res) => {
   try {
     return res.json({
@@ -158,7 +196,7 @@ router.get("/check", validarJWT, (req, res) => {
         apellido: req.usuario.apellido,
         correo: req.usuario.correo,
         rol: req.usuario.rol,
-      }
+      },
     });
   } catch (error) {
     console.error("❌ Error en check:", error.message);
@@ -166,8 +204,7 @@ router.get("/check", validarJWT, (req, res) => {
   }
 });
 
-
-// Forgot password
+// 👉 Forgot password
 router.post("/forgot-password", async (req, res) => {
   try {
     const { correo } = req.body;
@@ -196,7 +233,7 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-// Reset password
+// 👉 Reset password
 router.post("/reset-password", async (req, res) => {
   try {
     const { token, newPassword } = req.body;
@@ -204,9 +241,6 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ msg: "Token y nueva contraseña son obligatorios" });
     }
 
-    console.log("📩 Body recibido en reset-password:", req.body);
-
-    // Validar complejidad de contraseña
     if (!validarPassword(newPassword)) {
       return res.status(400).json({
         msg: "La contraseña debe tener mínimo 8 caracteres, incluir una mayúscula y un número",
@@ -224,7 +258,7 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ msg: "Token inválido o expirado" });
     }
 
-    usuario.password = newPassword; // texto plano, el modelo lo hashea en pre('save')
+    usuario.password = newPassword; // el modelo lo hashea en pre('save')
     usuario.resetToken = undefined;
     usuario.resetTokenExpire = undefined;
 

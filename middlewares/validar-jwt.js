@@ -2,26 +2,18 @@ const jwt = require("jsonwebtoken");
 const Usuario = require("../models/usuario");
 
 const validarJWT = async (req, res, next) => {
-  // 1️⃣ Buscar token en header o cookie
-  let token = req.header("x-token");
-  if (!token && req.cookies?.token) {
-    token = req.cookies.token;
-  }
-
-  if (!token) {
-    return res.status(401).json({ error: "No hay token en la petición" });
-  }
-
   try {
-    console.log("🔑 Token recibido:", token);
+    // 1️⃣ Buscar token en header o cookie
+    let token = req.header("x-token") || req.cookies?.token;
+
+    if (!token) {
+      return res.status(401).json({ error: "No hay token en la petición" });
+    }
 
     // 2️⃣ Verificar JWT
     const { uid } = jwt.verify(token, process.env.SECRETORPRIVATEKEY);
 
-    // 3️⃣ Guardar uid en request
-    req.uid = uid;
-
-    // 4️⃣ Buscar usuario en BD
+    // 3️⃣ Buscar usuario en BD
     const usuario = await Usuario.findById(uid);
 
     if (!usuario) {
@@ -32,11 +24,11 @@ const validarJWT = async (req, res, next) => {
       return res.status(403).json({ error: "Usuario bloqueado o inhabilitado" });
     }
 
-    // 5️⃣ Adjuntar usuario al request
-    req.usuario = usuario;
+    // 4️⃣ Adjuntar usuario al request
+    req.uid = uid;          // opcional, si querés usar solo el id
+    req.usuario = usuario;  // objeto completo del usuario
 
-    console.log("✅ Usuario validado:", usuario.correo, "Rol:", usuario.rol);
-
+    // ✅ Usuario validado
     next();
   } catch (error) {
     console.error("❌ Error validando token:", error.message);
