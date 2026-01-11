@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const Usuario = require("../models/usuario");
 const { generarJWT } = require("../helpers/generar-jwt");
 const crypto = require("crypto");
-const { validarJWT } = require("../middlewares/validar-jwt");
+const jwt = require("jsonwebtoken"); // 👈 necesario para leer cookie en /check
 
 const router = Router();
 
@@ -61,7 +61,7 @@ router.post("/register", async (req, res) => {
       res.cookie("token", token, {
         httpOnly: true,
         secure: true,
-        sameSite: "none",   // 🔑 permite cookies cross-site
+        sameSite: "none",
         maxAge: 12 * 60 * 60 * 1000,
       });
       return res.status(201).json({ msg: "Usuario registrado" });
@@ -95,7 +95,6 @@ router.post("/login", async (req, res) => {
 
     const token = await generarJWT(usuario.id);
 
-    // Normalizamos datos de usuario para frontend
     const usuarioData = {
       id: usuario._id,
       nombre: usuario.nombre,
@@ -114,8 +113,8 @@ router.post("/login", async (req, res) => {
       res.cookie("token", token, {
         httpOnly: true,
         secure: true,
-        sameSite: "none",   // 🔑 permite cookies cross-site
-        maxAge: 12 * 60 * 60 * 1000, // 12 horas
+        sameSite: "none",
+        maxAge: 12 * 60 * 60 * 1000,
       });
       return res.json({ msg: "Login correcto", usuario: usuarioData });
     }
@@ -134,7 +133,7 @@ router.post("/logout", (req, res) => {
       res.clearCookie("token", {
         httpOnly: true,
         secure: true,
-        sameSite: "none",   // 🔑 igual que en login/register
+        sameSite: "none",
       });
       return res.json({ msg: "Sesión cerrada (cookie eliminada)" });
     } else {
@@ -146,22 +145,41 @@ router.post("/logout", (req, res) => {
   }
 });
 
-// 👉 Check sesión
-router.get("/check", validarJWT, (req, res) => {
+// 👉 Check sesión (lee cookie en prod, header en dev)
+router.get("/check", async (req, res) => {
   try {
+    let token;
+
+    if (process.env.NODE_ENV === "production") {
+      token = req.cookies.token; // 👈 cookie httpOnly
+    } else {
+      token = req.header("x-token"); // 👈 header en dev
+    }
+
+    if (!token) {
+      return res.status(401).json({ ok: false, msg: "No hay token en la petición" });
+    }
+
+    const { uid } = jwt.verify(token, process.env.SECRETORPRIVATEKEY);
+    const usuario = await Usuario.findById(uid);
+
+    if (!usuario) {
+      return res.status(404).json({ ok: false, msg: "Usuario no encontrado" });
+    }
+
     return res.json({
       ok: true,
       usuario: {
-        id: req.usuario.id,
-        nombre: req.usuario.nombre,
-        apellido: req.usuario.apellido,
-        correo: req.usuario.correo,
-        rol: req.usuario.rol,
+        id: usuario._id,
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        correo: usuario.correo,
+        rol: usuario.rol,
       },
     });
   } catch (error) {
     console.error("❌ Error en check:", error.message);
-    return res.status(500).json({ ok: false, msg: "Error interno del servidor" });
+    return res.status(401).json({ ok: false, msg: "Token inválido o expirado" });
   }
 });
 
@@ -213,7 +231,6 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ msg: "Token inválido o expirado" });
     }
 
-    // 🔐 Hashear nueva contraseña
     const salt = bcrypt.genSaltSync();
     usuario.password = bcrypt.hashSync(newPassword, salt);
 
@@ -229,5 +246,4 @@ router.post("/reset-password", async (req, res) => {
 });
 
 module.exports = router;
-
 
