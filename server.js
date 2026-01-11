@@ -35,23 +35,17 @@ const app = express();
 // --- Middlewares básicos ---
 app.use(express.json());
 app.use(cookieParser());
+
 // --- Configuración CORS dinámica ---
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
   : [];
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn("❌ Origen no permitido por CORS:", origin);
-      callback(new Error("No permitido por CORS"));
-    }
-  },
+  origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-token"],
-  credentials: true
+  credentials: true, // 🔑 permite enviar cookies
 }));
 
 // --- Logs ---
