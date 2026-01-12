@@ -135,15 +135,14 @@ router.post("/logout", (req, res) => {
         secure: true,
         sameSite: "none",
       });
-      return res.json({ msg: "Sesión cerrada (cookie eliminada)" });
-    } else {
-      return res.json({ msg: "Sesión cerrada (borra localStorage en frontend)" });
     }
+    return res.json({ msg: "Sesión cerrada" });
   } catch (error) {
     console.error("❌ Error en logout:", error.message);
     return res.status(500).json({ msg: "Error interno del servidor" });
   }
 });
+
 
 // 👉 Check sesión (lee cookie en prod, header en dev)
 router.get("/check", async (req, res) => {

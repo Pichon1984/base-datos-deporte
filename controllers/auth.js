@@ -8,28 +8,23 @@ const login = async (req, res) => {
 
   try {
     const usuario = await Usuario.findOne({ correo });
-    if (!usuario) {
-      return res.status(400).json({ msg: "Correo/contraseña incorrectos" });
+    if (!usuario || !usuario.estado) {
+      return res.status(400).json({ msg: "Credenciales inválidas" });
     }
 
-    if (!usuario.estado) {
-      return res.status(403).json({ msg: "Usuario inhabilitado" });
-    }
-
-    const valid = bcrypt.compareSync(password, usuario.password);
+    const valid = await bcrypt.compare(password, usuario.password);
     if (!valid) {
-      return res.status(400).json({ msg: "Correo/contraseña incorrectos" });
+      return res.status(400).json({ msg: "Credenciales inválidas" });
     }
 
-    const token = await generarJWT(usuario._id); // ✅ corregido
+    const token = await generarJWT(usuario._id);
 
-    const obj = usuario.toObject();
-    delete obj.password;
+    const { password: _, ...usuarioSinPassword } = usuario.toObject();
 
-    res.json({ token, usuario: obj });
+    res.json({ token, usuario: usuarioSinPassword });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ msg: "Error en login" });
+    res.status(500).json({ msg: "Error interno del servidor" });
   }
 };
 
@@ -43,21 +38,20 @@ const registrar = async (req, res) => {
       return res.status(400).json({ msg: "El correo ya está registrado" });
     }
 
-    const salt = bcrypt.genSaltSync();
-    const hashedPassword = bcrypt.hashSync(password, salt);
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     const usuario = new Usuario({ nombre, apellido, correo, password: hashedPassword });
     await usuario.save();
 
-    const token = await generarJWT(usuario._id); // ✅ corregido
+    const token = await generarJWT(usuario._id);
 
-    const obj = usuario.toObject();
-    delete obj.password;
+    const { password: _, ...usuarioSinPassword } = usuario.toObject();
 
-    res.status(201).json({ msg: "Usuario registrado", token, usuario: obj });
+    res.status(201).json({ msg: "Usuario registrado", token, usuario: usuarioSinPassword });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ msg: "Error al registrar" });
+    res.status(500).json({ msg: "Error interno del servidor" });
   }
 };
 

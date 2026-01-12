@@ -120,6 +120,25 @@ mongoose.connect(mongoUri, {
     console.error("❌ Error al conectar a MongoDB:", err.message);
     process.exit(1);
   });
+// --- Servir frontend ---
+const publicPath = path.resolve(__dirname, "public");
+app.use(express.static(publicPath));
+
+// --- Fallback para React Router ---
+app.get("*", (req, res) => {
+  const filePath = path.resolve(publicPath, "index.html");
+  console.log("➡️ Fallback ejecutado. Sirviendo:", filePath);
+
+  if (!fs.existsSync(filePath)) {
+    console.error("❌ No se encontró index.html en:", filePath);
+    return res.status(404).send("index.html no encontrado en carpeta public");
+  }
+
+  res.sendFile(filePath);
+});
+
+
+
 
 // --- Exportar app ---
 module.exports = app;
