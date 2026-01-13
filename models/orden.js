@@ -7,7 +7,7 @@ const ProductoSchema = new mongoose.Schema(
     precio: { type: Number, required: true },
     cantidad: { type: Number, required: true },
     talle: { type: String },
-    subtotal: { type: Number, default: 0 } // 👈 opcional, calculado en backend
+    subtotal: { type: Number, default: 0 } 
   },
   { _id: false }
 );
@@ -37,9 +37,9 @@ const OrdenSchema = new mongoose.Schema(
       default: "pendiente"
     },
 
-    total: { type: Number, required: true },       // subtotal productos
-    costoEnvio: { type: Number, required: true },  // costo de envío
-    totalFinal: { type: Number, required: true },  // total con envío
+    total: { type: Number, required: true },       
+    costoEnvio: { type: Number, required: true },  
+    totalFinal: { type: Number, required: true },  
 
     mercadoPago: {
       preference_id: { type: String, default: null },
@@ -47,7 +47,7 @@ const OrdenSchema = new mongoose.Schema(
       payment_id: { type: String, default: null },
       status: { type: String, default: null },
       status_detail: { type: String, default: null },
-      update_time: { type: Date } // 👈 opcional, para trazabilidad
+      update_time: { type: Date } 
     },
 
     external_reference: { type: String, default: null },
@@ -58,5 +58,4 @@ const OrdenSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ Exportación segura
 module.exports = mongoose.models.Orden || mongoose.model("Orden", OrdenSchema);

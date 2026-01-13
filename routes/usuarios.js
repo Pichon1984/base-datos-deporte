@@ -16,10 +16,10 @@ const Usuario = require("../models/usuario");
 
 const router = Router();
 
-// 📌 GET todos los usuarios - Solo ADMIN
+//  GET todos los usuarios - Solo ADMIN
 router.get("/", [validarJWT, validarRol(["ADMIN"])], usuariosGet);
 
-// 📌 GET perfil del usuario autenticado (antes que :id)
+//  GET perfil del usuario autenticado (antes que :id)
 router.get("/me", [validarJWT], async (req, res) => {
   try {
     const usuario = await Usuario.findById(req.usuario._id);
@@ -35,10 +35,10 @@ router.get("/me", [validarJWT], async (req, res) => {
   }
 });
 
-// 📌 PUT actualizar perfil del usuario autenticado
+//  PUT actualizar perfil del usuario autenticado
 router.put("/me", [validarJWT], async (req, res) => {
   try {
-    // ✅ Solo permitimos actualizar estos campos
+  
     const camposPermitidos = [
       "correo",
       "telefono",
@@ -50,14 +50,13 @@ router.put("/me", [validarJWT], async (req, res) => {
 
     const updates = {};
 
-    // ✅ Filtramos: si el campo viene definido y no está vacío, lo actualizamos
+   
     camposPermitidos.forEach((campo) => {
       if (req.body[campo] !== undefined && req.body[campo] !== "") {
         updates[campo] = req.body[campo];
       }
     });
 
-    // 🔒 Nombre, apellido y DNI quedan protegidos (no se actualizan)
     const usuario = await Usuario.findByIdAndUpdate(req.usuario._id, updates, { new: true });
     if (!usuario) {
       return res.status(404).json({ ok: false, msg: "Usuario no encontrado" });
@@ -74,7 +73,7 @@ router.put("/me", [validarJWT], async (req, res) => {
 });
 
 
-// 📌 GET usuario por ID - Solo ADMIN
+//  GET usuario por ID - Solo ADMIN
 router.get("/:id", [
   validarJWT,
   validarRol(["ADMIN"]),
@@ -82,7 +81,7 @@ router.get("/:id", [
   validarCampos
 ], usuariosGetId);
 
-// 📌 POST crear usuario
+//  POST crear usuario
 router.post("/", [
   check("nombre", "El nombre es obligatorio").notEmpty(),
   check("apellido", "El apellido es obligatorio").notEmpty(),
@@ -92,7 +91,7 @@ router.post("/", [
   validarCampos
 ], usuariosPost);
 
-// 📌 PUT actualizar usuario por ID
+//  PUT actualizar usuario por ID
 router.put("/:id", [
   validarJWT,
   check("id", "El ID no es válido").isMongoId(),
@@ -100,7 +99,7 @@ router.put("/:id", [
   validarCampos
 ], usuarioPut);
 
-// 📌 DELETE usuario - Solo ADMIN
+//  DELETE usuario - Solo ADMIN
 router.delete("/:id", [
   validarJWT,
   validarRol(["ADMIN"]),
@@ -109,7 +108,7 @@ router.delete("/:id", [
   validarCampos
 ], usuarioDelete);
 
-// 📌 POST guardar ubicación del usuario autenticado
+//  POST guardar ubicación del usuario autenticado
 router.post("/ubicacion", [validarJWT], guardarUbicacion);
 
 module.exports = router;

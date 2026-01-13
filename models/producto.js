@@ -7,27 +7,27 @@ const ProductoSchema = new Schema(
     descripcion: { type: String, trim: true },
     imagenes: [{ type: String }],
 
-    // ✅ Stock total calculado automáticamente
+    //  Stock total calculado automáticamente
     stock: { type: Number, default: 0, min: 0 },
 
-    // ✅ Talles con unidades disponibles
+    // Talles con unidades disponibles
     tallesUnidades: [
       {
-        talle: { type: String, required: true, trim: true }, // ej: "38", "M"
+        talle: { type: String, required: true, trim: true }, 
         stock: { type: Number, default: 0, min: 0 },
       },
     ],
 
-    // 🔗 Relación con categoría
+    //  Relación con categoría
     categoria: { type: Schema.Types.ObjectId, ref: "Categoria", required: true },
 
-    // 🔗 Relación con usuario (admin que lo creó)
+    // Relación con usuario (admin que lo creó)
     usuario: { type: Schema.Types.ObjectId, ref: "Usuario", required: true },
 
-    // 📦 Envío
+    //  Envío
     envio: {
       costo: { type: Number, default: 0, min: 0 },
-      tiempo: { type: Number, default: 3, min: 0 }, // días
+      tiempo: { type: Number, default: 3, min: 0 }, 
       metodos: [
         {
           type: String,
@@ -36,7 +36,7 @@ const ProductoSchema = new Schema(
       ],
     },
 
-    // 💳 Cuotas
+    //  Cuotas
     cuotas: [
       {
         cantidad: { type: Number, min: 1 },
@@ -44,12 +44,12 @@ const ProductoSchema = new Schema(
       },
     ],
 
-    activo: { type: Boolean, default: true }, // 👈 habilitar/deshabilitar producto sin borrarlo
+    activo: { type: Boolean, default: true }, 
   },
   { timestamps: true }
 );
 
-// 🔑 Middleware para normalizar precio y calcular stock total en save()
+//  Middleware para normalizar precio y calcular stock total en save()
 ProductoSchema.pre("save", function (next) {
   if (Number.isFinite(this.precio)) {
     this.precio = Number(parseFloat(this.precio).toFixed(2));
@@ -75,7 +75,7 @@ ProductoSchema.pre("save", function (next) {
   next();
 });
 
-// 🔑 Middleware para recalcular stock en findOneAndUpdate
+// Middleware para recalcular stock en findOneAndUpdate
 ProductoSchema.pre("findOneAndUpdate", function (next) {
   const update = this.getUpdate();
 

@@ -4,7 +4,7 @@ const validarRol = (rolesPermitidos = []) => {
       return res.status(401).json({ error: 'Token debe validarse antes de verificar rol' });
     }
 
-    const rolUsuario = req.usuario.rol; // 👈 usamos el rol tal cual viene del token/BD
+    const rolUsuario = req.usuario.rol; 
 
     if (!rolesPermitidos.includes(rolUsuario)) {
       return res.status(403).json({

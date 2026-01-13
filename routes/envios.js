@@ -7,7 +7,7 @@ const fetch = require("node-fetch");
 router.post("/compras/confirmar/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { origen, destino, peso } = req.body; // datos para Andreani
+    const { origen, destino, peso } = req.body; 
 
     if (!origen || !destino || !peso) {
       return res.status(400).json({ ok: false, error: "Datos de envío incompletos" });
@@ -18,7 +18,7 @@ router.post("/compras/confirmar/:id", async (req, res) => {
       return res.status(404).json({ ok: false, error: "Compra no encontrada" });
     }
 
-    // 👉 Cotizar con Andreani
+    //  Cotizar con Andreani
     const url = `${process.env.ANDREANI_API_URL}/rates`;
     const response = await fetch(url, {
       method: "POST",
@@ -43,12 +43,12 @@ router.post("/compras/confirmar/:id", async (req, res) => {
     const data = await response.json();
     console.log("📦 Respuesta Andreani:", data);
 
-    const costoEnvio = data.total || data.price || 0; // ajustar según respuesta real
+    const costoEnvio = data.total || data.price || 0;
 
-    // 👉 Guardar costo de envío en la compra
+    //  Guardar costo de envío en la compra
     compra.costoEnvio = costoEnvio;
-    compra.totalFinal = compra.total + costoEnvio; // 👈 usar compra.total
-    compra.estadoEnvio = "pendiente"; // inicial
+    compra.totalFinal = compra.total + costoEnvio; 
+    compra.estadoEnvio = "pendiente"; 
     await compra.save();
 
     res.json({ ok: true, compra });

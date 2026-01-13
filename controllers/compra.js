@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const crearCompra = async (req, res) => {
   try {
     const { items } = req.body;
-    const usuarioId = req.usuario._id;  // viene del JWT
+    const usuarioId = req.usuario._id;  
 
     let total = 0;
     const productosProcesados = [];
@@ -35,9 +35,9 @@ const crearCompra = async (req, res) => {
         productoId: producto._id,
         nombre: producto.nombre,
         cantidad: item.cantidad,
-        precio: producto.precio,   // 👈 coincide con schema
+        precio: producto.precio,  
         talle: item.talle || null,
-        subtotal                  // 👈 agregado para claridad
+        subtotal               
       });
     }
 
@@ -50,14 +50,12 @@ const crearCompra = async (req, res) => {
       costoEnvio = 0; // envío gratis
     } else {
       costoEnvio = ENVIO_BASE;
-      // Si querés proporcional:
-      // let descuento = (total / LIMITE_ENVIO_GRATIS) * ENVIO_BASE;
-      // costoEnvio = Math.max(ENVIO_BASE - descuento, 0);
+      
     }
 
     const nuevaCompra = new Compra({
-      usuario: usuarioId,               // 👈 corregido
-      productos: productosProcesados,   // 👈 coincide con schema
+      usuario: usuarioId,               
+      productos: productosProcesados,   
       total,
       costoEnvio,
       totalFinal: total + costoEnvio,

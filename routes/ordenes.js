@@ -1,21 +1,21 @@
 const express = require("express");
 const { MercadoPagoConfig, Preference } = require("mercadopago");
 const Orden = require("../models/orden");
-const Compra = require("../models/compra"); // 👈 faltaba
+const Compra = require("../models/compra"); 
 const { validarJWT } = require("../middlewares/validar-jwt");
 
 const router = express.Router();
 
-// ⚙️ Configuración MercadoPago
+//  Configuración MercadoPago
 const mpClient = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN,
 });
 
-// 🌍 URLs dinámicas según entorno
+//  URLs dinámicas según entorno
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
-// ✅ Crear preferencia de pago y orden
+//  Crear preferencia de pago y orden
 router.post("/checkout", validarJWT, async (req, res) => {
   try {
     const { envio, productos } = req.body;
@@ -24,10 +24,10 @@ router.post("/checkout", validarJWT, async (req, res) => {
       return res.status(400).json({ error: "Datos de envío incompletos" });
     }
 
-    // 🛒 Subtotal
+    //  Subtotal
     const subtotal = productos.reduce((acc, p) => acc + p.precio * p.cantidad, 0);
 
-    // 🚚 Cálculo envío
+    //  Cálculo envío
     const ENVIO_BASE = 30000;
     const LIMITE_ENVIO_GRATIS = 200000;
     let costoEnvio = 0;
@@ -38,7 +38,7 @@ router.post("/checkout", validarJWT, async (req, res) => {
 
     const totalFinal = subtotal + costoEnvio;
 
-    // 📌 Crear orden
+    //  Crear orden
     const nuevaOrden = new Orden({
       usuario: req.usuario._id,
       productos,
@@ -53,7 +53,7 @@ router.post("/checkout", validarJWT, async (req, res) => {
 
     const ordenGuardada = await nuevaOrden.save();
 
-    // 📌 Crear preferencia MercadoPago
+    //  Crear preferencia MercadoPago
     const preference = new Preference(mpClient);
     const response = await preference.create({
       body: {
@@ -95,7 +95,7 @@ router.post("/checkout", validarJWT, async (req, res) => {
   }
 });
 
-// ✅ Webhook de MercadoPago
+//  Webhook de MercadoPago
 router.post("/webhook", async (req, res) => {
   try {
     const { type, data } = req.body;
@@ -136,7 +136,7 @@ router.post("/webhook", async (req, res) => {
 });
 
 
-// ✅ Cancelar orden
+//  Cancelar orden
 router.delete("/:id", validarJWT, async (req, res) => {
   try {
     const { id } = req.params;
@@ -163,7 +163,7 @@ router.delete("/:id", validarJWT, async (req, res) => {
   }
 });
 
-// ✅ Filtrar órdenes con paginación
+//  Filtrar órdenes con paginación
 router.get("/filtrar", validarJWT, async (req, res) => {
   try {
     const { estado, usuarioId, desde, hasta } = req.query;
@@ -202,7 +202,7 @@ router.get("/filtrar", validarJWT, async (req, res) => {
   }
 });
 
-// ✅ Obtener una orden por ID
+//  Obtener una orden por ID
 router.get("/:id", validarJWT, async (req, res) => {
   try {
     const { id } = req.params;

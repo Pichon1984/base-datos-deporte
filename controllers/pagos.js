@@ -52,9 +52,9 @@ const iniciarPago = async (req, res) => {
       },
       auto_return: "approved",
       external_reference: compra._id.toString(),
-      notification_url: `${BASE_URL}/api/ordenes/webhook`, // asegurate que exista y responda 200
+      notification_url: `${BASE_URL}/api/ordenes/webhook`, 
       payer: {
-        email: compra.email || undefined, // si lo tenés en la compra
+        email: compra.email || undefined, 
       },
     };
 

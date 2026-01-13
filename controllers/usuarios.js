@@ -11,7 +11,7 @@ const usuariosGet = async (req, res) => {
 
   // si viene estado en query, lo agregamos al filtro
   if (estado !== undefined) {
-    filtro.estado = estado === "true"; // convierte string a boolean
+    filtro.estado = estado === "true"; 
   }
 
   // si viene búsqueda, agregamos condiciones
@@ -88,7 +88,7 @@ const usuariosPost = async (req, res) => {
 // ✏️ PUT bloquear/desbloquear usuario por ID
 const usuarioPut = async (req, res) => {
   const { id } = req.params;
-  const { estado } = req.body; // true = activo, false = bloqueado
+  const { estado } = req.body; 
   try {
     const usuario = await Usuario.findByIdAndUpdate(
       id,
@@ -110,7 +110,7 @@ const usuarioPut = async (req, res) => {
 // 🗑️ DELETE físico
 const usuarioDelete = async (req, res) => {
   const { id } = req.params;
-  const usuario = await Usuario.findByIdAndDelete(id); // borrado físico
+  const usuario = await Usuario.findByIdAndDelete(id); 
   if (!usuario) return res.status(404).json({ msg: "Usuario no encontrado" });
 
   const obj = usuario.toObject();

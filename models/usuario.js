@@ -47,7 +47,7 @@ const UsuarioSchema = new Schema({
 
 }, { timestamps: true });
 
-// 👉 Middleware para hashear automáticamente la contraseña
+//  Middleware para hashear automáticamente la contraseña
 UsuarioSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);

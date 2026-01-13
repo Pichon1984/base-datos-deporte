@@ -3,17 +3,17 @@ const bcrypt = require("bcryptjs");
 const Usuario = require("../models/usuario");
 const { generarJWT } = require("../helpers/generar-jwt");
 const crypto = require("crypto");
-const jwt = require("jsonwebtoken"); // 👈 necesario para leer cookie en /check
+const jwt = require("jsonwebtoken"); 
 
 const router = Router();
 
-// 👉 Validación de contraseña
+//  Validación de contraseña
 function validarPassword(password) {
   const regex = /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
   return regex.test(password);
 }
 
-// 👉 Registro
+//  Registro
 router.post("/register", async (req, res) => {
   const {
     nombre, apellido, correo, password,
@@ -42,7 +42,7 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ msg: "El correo ya está registrado" });
     }
 
-    // 🔐 Hashear contraseña antes de guardar
+    //  Hashear contraseña antes de guardar
     const salt = bcrypt.genSaltSync();
     const hashedPassword = bcrypt.hashSync(password, salt);
 
@@ -74,7 +74,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// 👉 Login
+//  Login
 router.post("/login", async (req, res) => {
   const { correo, password } = req.body;
 
@@ -126,7 +126,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// 👉 Logout
+//  Logout
 router.post("/logout", (req, res) => {
   try {
     if (process.env.NODE_ENV === "production") {
@@ -144,15 +144,15 @@ router.post("/logout", (req, res) => {
 });
 
 
-// 👉 Check sesión (lee cookie en prod, header en dev)
+//  Check sesión (lee cookie en prod, header en dev)
 router.get("/check", async (req, res) => {
   try {
     let token;
 
     if (process.env.NODE_ENV === "production") {
-      token = req.cookies.token; // 👈 cookie httpOnly
+      token = req.cookies.token; 
     } else {
-      token = req.header("x-token"); // 👈 header en dev
+      token = req.header("x-token"); 
     }
 
     if (!token) {
@@ -182,7 +182,7 @@ router.get("/check", async (req, res) => {
   }
 });
 
-// 👉 Forgot password
+//  Forgot password
 router.post("/forgot-password", async (req, res) => {
   try {
     const { correo } = req.body;
@@ -206,7 +206,7 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-// 👉 Reset password
+//  Reset password
 router.post("/reset-password", async (req, res) => {
   try {
     const { token, newPassword } = req.body;

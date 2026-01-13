@@ -14,16 +14,10 @@ const { validarRol } = require("../middlewares/validarRol");
 
 const router = Router();
 
-/**
- * ✅ Listar productos (público, con búsqueda/filtros/paginación)
- * GET /api/productos
- */
+// Listar productos (público, con búsqueda/filtros/paginación)
+
 router.get("/", productosGet);
 
-/**
- * ✅ Obtener producto por ID (público)
- * GET /api/productos/:id
- */
 router.get(
   "/:id",
   [
@@ -34,10 +28,7 @@ router.get(
   productoGet
 );
 
-/**
- * ✅ Crear producto (solo ADMIN)
- * POST /api/productos
- */
+
 router.post(
   "/",
   [
@@ -47,8 +38,6 @@ router.post(
     check("precio", "El precio debe ser un número válido").isNumeric(),
     check("categoria", "La categoría es obligatoria y debe ser un ID válido").isMongoId(),
     check("categoria").custom(categoriaExiste),
-
-    // 👇 validación de tallesUnidades si vienen
     check("tallesUnidades").optional().isArray().withMessage("tallesUnidades debe ser un array"),
     check("tallesUnidades.*.talle", "Cada talle debe ser un string").optional().isString(),
     check("tallesUnidades.*.stock", "El stock de cada talle debe ser un número").optional().isNumeric(),
@@ -58,10 +47,6 @@ router.post(
   productoPost
 );
 
-/**
- * ✅ Actualizar producto (solo ADMIN)
- * PUT /api/productos/:id
- */
 router.put(
   "/:id",
   [
@@ -69,14 +54,10 @@ router.put(
     validarRol(["ADMIN"]),
     check("id", "El ID no es válido").isMongoId(),
     check("id").custom(productoExiste),
-
-    // 👇 validaciones opcionales: si vienen, deben ser correctas
     check("nombre", "El nombre no puede estar vacío").optional().notEmpty(),
     check("precio", "El precio debe ser un número válido").optional().isNumeric(),
     check("categoria", "La categoría debe ser un ID válido").optional().isMongoId(),
     check("categoria").optional().custom(categoriaExiste),
-
-    // 👇 validación de tallesUnidades si vienen
     check("tallesUnidades").optional().isArray().withMessage("tallesUnidades debe ser un array"),
     check("tallesUnidades.*.talle", "Cada talle debe ser un string").optional().isString(),
     check("tallesUnidades.*.stock", "El stock de cada talle debe ser un número").optional().isNumeric(),
@@ -86,10 +67,6 @@ router.put(
   productoPut
 );
 
-/**
- * ✅ Eliminar producto (solo ADMIN)
- * DELETE /api/productos/:id
- */
 router.delete(
   "/:id",
   [
