@@ -4,9 +4,9 @@ const Usuario = require("../models/usuario");
 
 const router = Router();
 
-/**
- * ✅ GET /api/carrito → obtener carrito del usuario logueado
- */
+
+ //GET /api/carrito → obtener carrito del usuario logueado
+
 router.get("/", validarJWT, async (req, res) => {
   try {
     const usuario = await Usuario.findById(req.usuario._id).populate("carrito.productoId");
@@ -20,9 +20,9 @@ router.get("/", validarJWT, async (req, res) => {
   }
 });
 
-/**
- * ✅ POST /api/carrito → agregar producto al carrito
- */
+
+ // POST /api/carrito → agregar producto al carrito
+
 router.post("/", validarJWT, async (req, res) => {
   const { productoId, talle, cantidad } = req.body;
   try {
@@ -58,9 +58,9 @@ router.post("/", validarJWT, async (req, res) => {
   }
 });
 
-/**
- * ✅ PUT /api/carrito/:productoId → actualizar cantidad
- */
+
+ //  PUT /api/carrito/:productoId → actualizar cantidad
+ 
 router.put("/:productoId", validarJWT, async (req, res) => {
   const { productoId } = req.params;
   const { talle, cantidad } = req.body;
@@ -99,9 +99,9 @@ router.put("/:productoId", validarJWT, async (req, res) => {
   }
 });
 
-/**
- * ✅ DELETE /api/carrito/:productoId → eliminar producto específico
- */
+
+ // DELETE /api/carrito/:productoId → eliminar producto específico
+
 router.delete("/:productoId", validarJWT, async (req, res) => {
   const { productoId } = req.params;
   const { talle } = req.query;
@@ -134,9 +134,9 @@ router.delete("/:productoId", validarJWT, async (req, res) => {
   }
 });
 
-/**
- * ✅ DELETE /api/carrito → vaciar carrito completo
- */
+
+ // DELETE /api/carrito → vaciar carrito completo
+
 router.delete("/", validarJWT, async (req, res) => {
   try {
     const usuario = await Usuario.findById(req.usuario._id);

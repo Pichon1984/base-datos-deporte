@@ -44,7 +44,7 @@ const compraSchema = new mongoose.Schema(
         fecha: { type: Date, default: Date.now },
         origen: { type: String },
         destino: { type: String },
-        usuarioAccion: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario" }, // 👈 opcional
+        usuarioAccion: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario" }, 
       },
     ],
 
@@ -56,19 +56,19 @@ const compraSchema = new mongoose.Schema(
         status: { type: String },
         fecha: { type: Date, default: Date.now },
         paymentId: { type: String },
-        usuarioAccion: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario" }, // 👈 opcional
+        usuarioAccion: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario" }, 
       },
     ],
 
-    external_reference: { type: String, default: null }, // 👈 para trazabilidad con MP
+    external_reference: { type: String, default: null }, 
   },
   { timestamps: true }
 );
 
-// 🔑 Helper para redondear a 2 decimales
+//  Helper para redondear a 2 decimales
 const toTwoDecimals = (num) => Math.round(num * 100) / 100;
 
-// 🔑 Middleware para calcular subtotal y totalFinal automáticamente
+//  Middleware para calcular subtotal y totalFinal automáticamente
 compraSchema.pre("save", function (next) {
   if (Array.isArray(this.productos) && this.productos.length > 0) {
     this.total = this.productos.reduce((acc, item) => {
@@ -90,7 +90,7 @@ compraSchema.pre("save", function (next) {
   next();
 });
 
-// 🔑 Middleware para recalcular en findOneAndUpdate
+//  Middleware para recalcular en findOneAndUpdate
 compraSchema.pre("findOneAndUpdate", function (next) {
   const update = this.getUpdate();
 

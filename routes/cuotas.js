@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
       `https://api.mercadopago.com/v1/payment_methods/card_issuers?payment_method_id=${payment_method_id}`,
       {
         headers: {
-          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`, // ✅ CORRECTO
+          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`, 
         },
       }
     );
@@ -30,7 +30,7 @@ router.get("/", async (req, res) => {
     const url = `https://api.mercadopago.com/v1/payment_methods/installments?amount=${amount}&payment_method_id=${payment_method_id}&issuer.id=${issuerId}`;
     const response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`, // ✅ CORRECTO
+        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`, 
       },
     });
 

@@ -3,7 +3,7 @@ const Orden = require('../models/Orden');
 
 exports.crearOrdenDesdeCarrito = async (req, res) => {
   try {
-    const usuarioId = req.usuario.id; // viene del JWT
+    const usuarioId = req.usuario.id; 
     const carrito = await Carrito.findOne({ usuarioId, estado: 'activo' }).populate('items.productoId');
 
     if (!carrito || carrito.items.length === 0) {
@@ -26,7 +26,7 @@ exports.crearOrdenDesdeCarrito = async (req, res) => {
     const orden = new Orden({
       usuario: usuarioId,
       productos,
-      envio: req.body.envio, // dirección, método, etc.
+      envio: req.body.envio, 
       costoEnvio,
       total: subtotal,
       totalFinal

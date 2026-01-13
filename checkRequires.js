@@ -32,7 +32,6 @@ function walk(dir) {
     const fullPath = path.join(dir, file);
     const stat = fs.statSync(fullPath);
     if (stat && stat.isDirectory()) {
-      // 🚫 Ignorar node_modules
       if (!fullPath.includes("node_modules")) {
         results = results.concat(walk(fullPath));
       }

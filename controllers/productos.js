@@ -79,8 +79,7 @@ const productoPost = async (req, res) => {
       precio,
       descripcion,
       imagenes,
-      categoria, // puede venir como nombre o _id
-      envio,
+      categoria, 
       cuotas,
       tallesUnidades,
     } = req.body;

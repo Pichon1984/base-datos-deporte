@@ -19,7 +19,7 @@ function validarToken(req, res, next) {
   }
 }
 
-// ✅ Checkout por compra específica
+//  Checkout por compra específica
 router.get('/compra/:id', validarToken, async (req, res) => {
   try {
     const compra = await Compra.findById(req.params.id);
@@ -30,10 +30,10 @@ router.get('/compra/:id', validarToken, async (req, res) => {
   }
 });
 
-// ✅ Checkout por carrito completo
+//  Checkout por carrito completo
 router.post('/carrito', validarToken, async (req, res) => {
   try {
-    const { items } = req.body; // array de productos del carrito
+    const { items } = req.body; 
     if (!items || items.length === 0) {
       return res.status(400).json({ error: 'Carrito vacío' });
     }
@@ -53,7 +53,7 @@ router.post('/carrito', validarToken, async (req, res) => {
   }
 });
 
-// ✅ Calcular envío con Andreani (QA usando Basic Auth)
+//  Calcular envío con Andreani (QA usando Basic Auth)
 router.get('/envios/andreani', validarToken, async (req, res) => {
   const { origen, destino, peso } = req.query;
   try {
@@ -63,7 +63,7 @@ router.get('/envios/andreani', validarToken, async (req, res) => {
     const response = await axios.get(`${process.env.ANDREANI_API_URL}/envios`, {
       params: { origen, destino, peso },
       headers: {
-        Authorization: `Basic ${authBase64}`, // 👈 ahora correcto
+        Authorization: `Basic ${authBase64}`, 
         "x-ibm-client-id": process.env.ANDREANI_CLIENT_CODE
       }
     });

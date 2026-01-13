@@ -5,13 +5,13 @@ const CategoriaSchema = new Schema({
     type: String,
     required: [true, "El nombre es obligatorio"],
     unique: true,
-    lowercase: true, // siempre guarda en minúsculas
-    trim: true       // elimina espacios extra
+    lowercase: true, 
+    trim: true      
   },
   descripcion: { type: String, trim: true },
-  estado: { type: Boolean, default: true }, // activo/inactivo
-  usuario: { type: Schema.Types.ObjectId, ref: "Usuario", required: true } // quién creó la categoría
-}, { timestamps: true }); // 👈 agrega createdAt y updatedAt automáticamente
+  estado: { type: Boolean, default: true }, 
+  usuario: { type: Schema.Types.ObjectId, ref: "Usuario", required: true } 
+}, { timestamps: true }); 
 
 module.exports = model("Categoria", CategoriaSchema);
 

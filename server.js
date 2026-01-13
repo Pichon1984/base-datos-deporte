@@ -45,7 +45,7 @@ app.use(cors({
   origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-token"],
-  credentials: true, // 🔑 permite enviar cookies
+  credentials: true, 
 }));
 
 // --- Logs ---
@@ -57,8 +57,8 @@ if (process.env.NODE_ENV === "production") {
     fs.mkdirSync(logDir);
   }
   const accessLogStream = fs.createWriteStream(path.join(logDir, "access.log"), { flags: "a" });
-  app.use(morgan("dev")); // consola
-  app.use(morgan("combined", { stream: accessLogStream })); // archivo
+  app.use(morgan("dev")); 
+  app.use(morgan("combined", { stream: accessLogStream })); 
 }
 
 app.use(express.static("public"));

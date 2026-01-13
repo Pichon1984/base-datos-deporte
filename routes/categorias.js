@@ -6,7 +6,7 @@ const { validarJWT } = require("../middlewares/validar-jwt");
 
 const router = Router();
 
-// ✅ Listar todas las categorías
+//  Listar todas las categorías
 router.get("/", async (req, res) => {
   try {
     const categorias = await Categoria.find({ estado: true }).select("nombre _id");
@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ✅ Obtener categoría por ID (ObjectId)
+//  Obtener categoría por ID (ObjectId)
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -37,7 +37,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// ✅ Obtener productos de una categoría por ID (ObjectId)
+//  Obtener productos de una categoría por ID (ObjectId)
 router.get("/:id/productos", async (req, res) => {
   try {
     const { id } = req.params;
@@ -52,7 +52,7 @@ router.get("/:id/productos", async (req, res) => {
       return res.status(404).json({ msg: "Categoría no encontrada" });
     }
 
-    // ✅ Consulta directa usando ObjectId
+    //  Consulta directa usando ObjectId
     const query = { categoria: id, activo: true };
 
     const productos = await Producto.find(query)
@@ -73,7 +73,7 @@ router.get("/:id/productos", async (req, res) => {
   }
 });
 
-// ✅ Crear categoría
+//  Crear categoría
 router.post("/", validarJWT, async (req, res) => {
   try {
     const { nombre } = req.body;
@@ -103,7 +103,7 @@ router.post("/", validarJWT, async (req, res) => {
   }
 });
 
-// ✅ Actualizar categoría
+//  Actualizar categoría
 router.put("/:id", validarJWT, async (req, res) => {
   try {
     const { id } = req.params;
@@ -133,7 +133,7 @@ router.put("/:id", validarJWT, async (req, res) => {
   }
 });
 
-// ✅ Eliminar categoría
+//  Eliminar categoría
 router.delete("/:id", validarJWT, async (req, res) => {
   try {
     const { id } = req.params;

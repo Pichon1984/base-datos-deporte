@@ -5,14 +5,13 @@ const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
 const Compra = require("../models/compra");
 const Producto = require("../models/producto");
 
-// ⚠️ Usar siempre el Access Token de prueba en desarrollo
+//  Usar siempre el Access Token de prueba en desarrollo
 const client = new MercadoPagoConfig({
-  accessToken: process.env.MP_ACCESS_TOKEN, // TEST-xxxxxxxxxxxx o APP_USR en producción
+  accessToken: process.env.MP_ACCESS_TOKEN, 
 });
 
-/**
- * 📌 Crear preferencia de pago desde una compra (para Brick)
- */
+// Crear preferencia de pago desde una compra (para Brick)
+ 
 router.post("/crear/:compraId", async (req, res) => {
   try {
     const { compraId } = req.params;
@@ -51,7 +50,6 @@ router.post("/crear/:compraId", async (req, res) => {
       },
     });
 
-    // 👇 CORREGIDO: usar result.id directamente
     res.json({
       ok: true,
       preferenceId: result.id,
@@ -65,9 +63,8 @@ router.post("/crear/:compraId", async (req, res) => {
   }
 });
 
-/**
- * 📌 Procesar pago desde el Brick de MercadoPago
- */
+// Procesar pago desde el Brick de MercadoPago
+
 router.post("/procesar", async (req, res) => {
   try {
     const { compraId, amount, cardFormData } = req.body;
@@ -130,9 +127,8 @@ router.post("/procesar", async (req, res) => {
   }
 });
 
-/**
- * 📦 Webhook para notificaciones de pago con transacción MongoDB
- */
+// Webhook para notificaciones de pago con transacción MongoDB
+
 router.post("/webhook", async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();

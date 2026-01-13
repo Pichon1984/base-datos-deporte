@@ -8,9 +8,9 @@ const { calcularCostoEnvio } = require("../helpers/envio");
 
 const router = express.Router();
 
-/**
- * 📌 Crear una compra con envío proporcional
- */
+
+ // Crear una compra con envío proporcional
+
 router.post("/", validarJWT, async (req, res) => {
   try {
     const { ordenId, productos } = req.body;
@@ -41,7 +41,7 @@ router.post("/", validarJWT, async (req, res) => {
         return res.status(404).json({ ok: false, error: `Producto no encontrado: ${item.productoId}` });
       }
 
-      // ✅ Validar stock por talle si corresponde
+      //  Validar stock por talle si corresponde
       if (item.talle) {
         const talleObj = producto.tallesUnidades.find(t => t.talle === item.talle);
         if (!talleObj || talleObj.stock < item.cantidad) {
@@ -86,9 +86,8 @@ router.post("/", validarJWT, async (req, res) => {
   }
 });
 
-/**
- * 📌 Obtener compras del cliente autenticado con filtros y paginación
- */
+// Obtener compras del cliente autenticado con filtros y paginación
+
 router.get("/mias", validarJWT, async (req, res) => {
   try {
     const { estado, desde, hasta, page = 1, limit = 10 } = req.query;
@@ -121,9 +120,8 @@ router.get("/mias", validarJWT, async (req, res) => {
   }
 });
 
-/**
- * 📌 Obtener todas las compras (solo ADMIN) con filtros y paginación
- */
+// Obtener todas las compras (solo ADMIN) con filtros y paginación
+ 
 router.get("/", validarJWT, async (req, res) => {
   try {
     if (req.usuario.rol !== "ADMIN") {
@@ -161,9 +159,8 @@ router.get("/", validarJWT, async (req, res) => {
   }
 });
 
-/**
- * 📌 Consultar estado de envío de una compra
- */
+// Consultar estado de envío de una compra
+
 router.get("/:id/envio", validarJWT, async (req, res) => {
   try {
     const compra = await Compra.findById(req.params.id).populate("usuario", "nombre correo");
@@ -193,9 +190,8 @@ router.get("/:id/envio", validarJWT, async (req, res) => {
   }
 });
 
-/**
- * 📌 Obtener una compra específica por ID
- */
+// Obtener una compra específica por ID
+
 router.get("/:id", validarJWT, async (req, res) => {
   try {
     const compra = await Compra.findById(req.params.id)
@@ -219,9 +215,8 @@ router.get("/:id", validarJWT, async (req, res) => {
   }
 });
 
-/**
- * 📌 Actualizar estado de envío y tracking (solo ADMIN, con Andreani)
- */
+// Actualizar estado de envío y tracking (solo ADMIN, con Andreani)
+
 router.put("/:id/envio", validarJWT, async (req, res) => {
   try {
     if (req.usuario.rol !== "ADMIN") {
@@ -238,7 +233,7 @@ router.put("/:id/envio", validarJWT, async (req, res) => {
       return res.status(404).json({ ok: false, error: "Compra no encontrada" });
     }
 
-    // 🚚 Integración con Andreani si se marca como enviado
+    //  Integración con Andreani si se marca como enviado
     if (estadoEnvio === "enviado") {
       try {
         const contrato = compra.courier === "SUCURSAL"
@@ -291,7 +286,7 @@ router.put("/:id/envio", validarJWT, async (req, res) => {
 
     if (estadoEnvio === "entregado" && !compra.fechaEntrega) compra.fechaEntrega = new Date();
 
-    // 📌 Registrar evento en historial
+    //  Registrar evento en historial
     if (estadoEnvio) {
       compra.envioEventos.push({
         status: estadoEnvio.toUpperCase(),
@@ -314,9 +309,8 @@ router.put("/:id/envio", validarJWT, async (req, res) => {
   }
 });
 
-/**
- * 📦 Webhook de Andreani para actualizar estado de envío
- */
+// Webhook de Andreani para actualizar estado de envío
+
 router.post("/andreani/webhook", async (req, res) => {
   try {
     const { trackingNumber, status } = req.body;
@@ -339,7 +333,7 @@ router.post("/andreani/webhook", async (req, res) => {
       if (!compra.fechaEnvio) compra.fechaEnvio = new Date();
     }
 
-    // 📌 Registrar evento en historial
+    //  Registrar evento en historial
     compra.envioEventos.push({
       status,
       fecha: new Date(),

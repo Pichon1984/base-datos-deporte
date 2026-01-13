@@ -16,9 +16,6 @@ const carritoSchema = new mongoose.Schema({
   total: { type: Number, default: 0 }
 }, { timestamps: true });
 
-/**
- * 🔑 Middleware para recalcular subtotales y total del carrito
- */
 function calcularTotales(doc) {
   if (Array.isArray(doc.items) && doc.items.length > 0) {
     let total = doc.items.reduce((acc, item) => {

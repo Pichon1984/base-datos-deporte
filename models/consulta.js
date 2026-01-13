@@ -6,7 +6,7 @@ const consultaSchema = new Schema({
   mensaje: { type: String, required: true },
   fecha: { type: Date, default: Date.now },
   respondida: { type: Boolean, default: false },
-  respuesta: { type: String } // nueva propiedad
+  respuesta: { type: String } 
 });
 
 module.exports = model("Consulta", consultaSchema);
