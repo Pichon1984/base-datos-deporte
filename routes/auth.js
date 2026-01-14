@@ -4,7 +4,7 @@ const Usuario = require("../models/usuario");
 const { generarJWT } = require("../helpers/generar-jwt");
 const jwt = require("jsonwebtoken");
 const { validarJWT } = require("../middlewares/validar-jwt");
-const { forgotPassword } = require("../controllers/forgotPassword");
+const { forgotPassword } = require("../controllers/forgotPassword"); // 🔹 Ajusta el path según tu controlador
 
 const router = Router();
 
@@ -44,8 +44,8 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ msg: "El correo ya está registrado" });
     }
 
-    const salt = bcrypt.genSaltSync();
-    const hashedPassword = bcrypt.hashSync(password, salt);
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     const usuario = new Usuario({
       nombre, apellido, correo, password: hashedPassword,
@@ -163,7 +163,7 @@ router.post("/refresh", (req, res) => {
         sameSite: "none",
         maxAge: 15 * 60 * 1000,
       });
-      return res.json({ msg: "Token renovado" });
+      return res.json({ msg: "Token renovado" }); // 🔹 En producción no devolvemos el token, sólo confirmamos
     }
 
     return res.json({ msg: "Token renovado", token: newToken });
@@ -213,6 +213,7 @@ router.get("/check", validarJWT, (req, res) => {
   };
   res.json({ usuario: usuarioData });
 });
+
 // --- Forgot Password ---
 router.post("/forgot-password", forgotPassword);
 
@@ -248,10 +249,13 @@ router.post("/reset-password", async (req, res) => {
     }
 
     // Guardar nueva contraseña
-    const salt = bcrypt.genSaltSync();
-    usuario.password = bcrypt.hashSync(newPassword, salt);
+    const salt = await bcrypt.genSalt(10);
+    usuario.password = await bcrypt.hash(newPassword, salt);
+
+    // Limpiar token de recuperación
     usuario.resetToken = undefined;
     usuario.resetTokenExpire = undefined;
+
     await usuario.save();
 
     return res.json({ msg: "Contraseña actualizada correctamente" });
@@ -260,6 +264,4 @@ router.post("/reset-password", async (req, res) => {
     return res.status(500).json({ msg: "Error interno del servidor" });
   }
 });
-
-
 module.exports = router;
