@@ -4,6 +4,7 @@ const Usuario = require("../models/usuario");
 const { generarJWT } = require("../helpers/generar-jwt");
 const jwt = require("jsonwebtoken");
 const { validarJWT } = require("../middlewares/validar-jwt");
+const { forgotPassword } = require("../controllers/forgotPassword");
 
 const router = Router();
 
@@ -212,5 +213,53 @@ router.get("/check", validarJWT, (req, res) => {
   };
   res.json({ usuario: usuarioData });
 });
+// --- Forgot Password ---
+router.post("/forgot-password", forgotPassword);
+
+// --- Reset Password ---
+router.post("/reset-password", async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    if (!token || !newPassword) {
+      return res.status(400).json({ msg: "Token y nueva contraseña son obligatorios" });
+    }
+
+    // Hashear el token recibido para compararlo con el guardado
+    const hashedToken = require("crypto")
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    const usuario = await Usuario.findOne({
+      resetToken: hashedToken,
+      resetTokenExpire: { $gt: Date.now() },
+    });
+
+    if (!usuario) {
+      return res.status(400).json({ msg: "Token inválido o expirado" });
+    }
+
+    // Validar nueva contraseña
+    if (!validarPassword(newPassword)) {
+      return res.status(400).json({
+        msg: "La contraseña debe tener mínimo 8 caracteres, incluir una mayúscula y un número",
+      });
+    }
+
+    // Guardar nueva contraseña
+    const salt = bcrypt.genSaltSync();
+    usuario.password = bcrypt.hashSync(newPassword, salt);
+    usuario.resetToken = undefined;
+    usuario.resetTokenExpire = undefined;
+    await usuario.save();
+
+    return res.json({ msg: "Contraseña actualizada correctamente" });
+  } catch (error) {
+    console.error("❌ Error en reset-password:", error.message);
+    return res.status(500).json({ msg: "Error interno del servidor" });
+  }
+});
+
 
 module.exports = router;
