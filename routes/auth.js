@@ -73,7 +73,7 @@ router.post("/register", async (req, res) => {
         sameSite: "none",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-      return res.status(201).json({ msg: "Usuario registrado" });
+      return res.status(201).json({ msg: "Usuario registrado", token }); // 🔹 ahora también devuelve token
     }
 
     return res.status(201).json({ msg: "Usuario registrado", token, refreshToken });
@@ -132,7 +132,7 @@ router.post("/login", async (req, res) => {
         sameSite: "none",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-      return res.json({ msg: "Login correcto", usuario: usuarioData });
+      return res.json({ msg: "Login correcto", usuario: usuarioData, token }); // 🔹 ahora también devuelve token
     }
 
     return res.json({ msg: "Login correcto", token, refreshToken, usuario: usuarioData });
@@ -163,7 +163,7 @@ router.post("/refresh", (req, res) => {
         sameSite: "none",
         maxAge: 15 * 60 * 1000,
       });
-      return res.json({ msg: "Token renovado" }); // 🔹 En producción no devolvemos el token, sólo confirmamos
+      return res.json({ msg: "Token renovado", token: newToken }); // 🔹 añadido
     }
 
     return res.json({ msg: "Token renovado", token: newToken });
@@ -226,7 +226,6 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ msg: "Token y nueva contraseña son obligatorios" });
     }
 
-    // Hashear el token recibido para compararlo con el guardado
     const hashedToken = require("crypto")
       .createHash("sha256")
       .update(token)
@@ -241,18 +240,15 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ msg: "Token inválido o expirado" });
     }
 
-    // Validar nueva contraseña
     if (!validarPassword(newPassword)) {
       return res.status(400).json({
         msg: "La contraseña debe tener mínimo 8 caracteres, incluir una mayúscula y un número",
       });
     }
 
-    // Guardar nueva contraseña
     const salt = await bcrypt.genSalt(10);
     usuario.password = await bcrypt.hash(newPassword, salt);
 
-    // Limpiar token de recuperación
     usuario.resetToken = undefined;
     usuario.resetTokenExpire = undefined;
 
@@ -264,4 +260,5 @@ router.post("/reset-password", async (req, res) => {
     return res.status(500).json({ msg: "Error interno del servidor" });
   }
 });
+
 module.exports = router;
