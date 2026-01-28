@@ -4,7 +4,7 @@ const Usuario = require("../models/usuario");
 const { generarJWT } = require("../helpers/generar-jwt");
 const jwt = require("jsonwebtoken");
 const { validarJWT } = require("../middlewares/validar-jwt");
-const { forgotPassword } = require("../controllers/forgotPassword"); // 🔹 Ajusta el path según tu controlador
+const { forgotPassword } = require("../controllers/forgotPassword");
 
 const router = Router();
 
@@ -44,11 +44,9 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ msg: "El correo ya está registrado" });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
+    // 👉 Contraseña en texto plano, el middleware la hashea
     const usuario = new Usuario({
-      nombre, apellido, correo, password: hashedPassword,
+      nombre, apellido, correo, password,
       telefono, direccion, provincia, localidad,
       codigoPostal, dni,
       estado: true,
@@ -59,6 +57,8 @@ router.post("/register", async (req, res) => {
 
     const token = await generarJWT(usuario.id);
     const refreshToken = generarRefreshToken(usuario.id);
+
+    const usuarioData = usuario.toJSON();
 
     if (process.env.NODE_ENV === "production") {
       res.cookie("token", token, {
@@ -73,15 +73,21 @@ router.post("/register", async (req, res) => {
         sameSite: "none",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-      return res.status(201).json({ msg: "Usuario registrado", token }); // 🔹 ahora también devuelve token
     }
 
-    return res.status(201).json({ msg: "Usuario registrado", token, refreshToken });
+    return res.status(201).json({
+      msg: "Usuario registrado",
+      token,
+      refreshToken,
+      usuario: usuarioData,
+    });
   } catch (error) {
     console.error("❌ Error en register:", error.message);
     return res.status(500).json({ msg: "Error interno del servidor" });
   }
 });
+
+
 
 // --- Login ---
 router.post("/login", async (req, res) => {
@@ -105,19 +111,7 @@ router.post("/login", async (req, res) => {
     const token = await generarJWT(usuario.id);
     const refreshToken = generarRefreshToken(usuario.id);
 
-    const usuarioData = {
-      id: usuario._id,
-      nombre: usuario.nombre,
-      apellido: usuario.apellido,
-      correo: usuario.correo,
-      rol: usuario.rol,
-      telefono: usuario.telefono,
-      direccion: usuario.direccion,
-      provincia: usuario.provincia,
-      localidad: usuario.localidad,
-      codigoPostal: usuario.codigoPostal,
-      dni: usuario.dni,
-    };
+    const usuarioData = usuario.toJSON();
 
     if (process.env.NODE_ENV === "production") {
       res.cookie("token", token, {
@@ -132,10 +126,14 @@ router.post("/login", async (req, res) => {
         sameSite: "none",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-      return res.json({ msg: "Login correcto", usuario: usuarioData, token }); // 🔹 ahora también devuelve token
     }
 
-    return res.json({ msg: "Login correcto", token, refreshToken, usuario: usuarioData });
+    return res.json({
+      msg: "Login correcto",
+      token,
+      refreshToken,
+      usuario: usuarioData,
+    });
   } catch (error) {
     console.error("❌ Error en login:", error.message);
     return res.status(500).json({ msg: "Error interno del servidor" });
@@ -143,7 +141,7 @@ router.post("/login", async (req, res) => {
 });
 
 // --- Refresh token ---
-router.post("/refresh", (req, res) => {
+router.post("/refresh", async (req, res) => {
   try {
     const refreshToken = process.env.NODE_ENV === "production"
       ? req.cookies.refreshToken
@@ -154,7 +152,14 @@ router.post("/refresh", (req, res) => {
     }
 
     const { uid } = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
-    const newToken = generarJWT(uid);
+    const newToken = await generarJWT(uid);
+
+    const usuario = await Usuario.findById(uid);
+    if (!usuario) {
+      return res.status(404).json({ msg: "Usuario no encontrado" });
+    }
+
+    const usuarioData = usuario.toJSON();
 
     if (process.env.NODE_ENV === "production") {
       res.cookie("token", newToken, {
@@ -163,10 +168,13 @@ router.post("/refresh", (req, res) => {
         sameSite: "none",
         maxAge: 15 * 60 * 1000,
       });
-      return res.json({ msg: "Token renovado", token: newToken }); // 🔹 añadido
     }
 
-    return res.json({ msg: "Token renovado", token: newToken });
+    return res.json({
+      msg: "Token renovado",
+      token: newToken,
+      usuario: usuarioData,
+    });
   } catch (error) {
     console.error("❌ Error en refresh:", error.message);
     return res.status(401).json({ msg: "Refresh token inválido o expirado" });
@@ -197,20 +205,7 @@ router.post("/logout", (req, res) => {
 
 // --- Check sesión ---
 router.get("/check", validarJWT, (req, res) => {
-  const u = req.usuario;
-  const usuarioData = {
-    id: u._id,
-    nombre: u.nombre,
-    apellido: u.apellido,
-    correo: u.correo,
-    rol: (u.rol || "").toUpperCase(),
-    telefono: u.telefono,
-    direccion: u.direccion,
-    provincia: u.provincia,
-    localidad: u.localidad,
-    codigoPostal: u.codigoPostal,
-    dni: u.dni,
-  };
+  const usuarioData = req.usuario.toJSON();
   res.json({ usuario: usuarioData });
 });
 
